@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>排泄記録アプリ</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .type-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .type-btn {
+            flex: 1;
+            padding: 20px;
+            border: 3px solid #ddd;
+            border-radius: 12px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 1rem;
+        }
+
+        .type-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .type-btn.urine {
+            border-color: #ffd93d;
+        }
+
+        .type-btn.urine.selected {
+            background: #ffd93d;
+            border-color: #f0c800;
+        }
+
+        .type-btn.stool {
+            border-color: #8b4513;
+        }
+
+        .type-btn.stool.selected {
+            background: #cd853f;
+            border-color: #8b4513;
+            color: white;
+        }
+
+        .type-btn .emoji {
+            font-size: 2rem;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .amount-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .amount-btn {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .amount-btn:hover {
+            background: #f5f5f5;
+        }
+
+        .amount-btn.selected {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .history-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            gap: 15px;
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .history-emoji {
+            font-size: 2rem;
+        }
+
+        .history-details {
+            flex: 1;
+        }
+
+        .history-time {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .history-info {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .history-memo {
+            font-size: 0.85rem;
+            color: #888;
+            margin-top: 3px;
+        }
+
+        .delete-btn {
+            background: #ff4757;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .delete-btn:hover {
+            background: #ff3344;
+        }
+
+        .empty-message {
+            text-align: center;
+            color: #888;
+            padding: 30px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            background: #f0f0f0;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .tab-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 12px;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .export-btn {
+            width: 100%;
+            padding: 12px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-top: 15px;
+        }
+
+        .export-btn:hover {
+            background: #218838;
+        }
+
+        .clear-btn {
+            width: 100%;
+            padding: 12px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-top: 10px;
+        }
+
+        .clear-btn:hover {
+            background: #c82333;
+        }
+
+        .stool-options {
+            display: none;
+        }
+
+        .stool-options.visible {
+            display: block;
+        }
+
+        .bristol-scale {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+        }
+
+        .bristol-btn {
+            padding: 8px 4px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.3s;
+        }
+
+        .bristol-btn:hover {
+            background: #f5f5f5;
+        }
+
+        .bristol-btn.selected {
+            background: #8b4513;
+            color: white;
+            border-color: #8b4513;
+        }
+
+        @media (max-width: 400px) {
+            .bristol-scale {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚽 排泄記録</h1>
+
+        <!-- 入力フォーム -->
+        <div class="card">
+            <div class="card-title">記録を追加</div>
+
+            <div class="type-buttons">
+                <button class="type-btn urine" onclick="selectType('urine')">
+                    <span class="emoji">💧</span>
+                    尿
+                </button>
+                <button class="type-btn stool" onclick="selectType('stool')">
+                    <span class="emoji">💩</span>
+                    便
+                </button>
+            </div>
+
+            <div class="form-group">
+                <label>日時</label>
+                <input type="datetime-local" id="datetime">
+            </div>
+
+            <div class="form-group">
+                <label>量</label>
+                <div class="amount-buttons">
+                    <button class="amount-btn" onclick="selectAmount('少')">少</button>
+                    <button class="amount-btn" onclick="selectAmount('普通')">普通</button>
+                    <button class="amount-btn" onclick="selectAmount('多')">多</button>
+                </div>
+            </div>
+
+            <div class="stool-options" id="stoolOptions">
+                <div class="form-group">
+                    <label>便の状態（ブリストルスケール）</label>
+                    <div class="bristol-scale">
+                        <button class="bristol-btn" onclick="selectBristol(1)" title="コロコロ便">1</button>
+                        <button class="bristol-btn" onclick="selectBristol(2)" title="硬い便">2</button>
+                        <button class="bristol-btn" onclick="selectBristol(3)" title="やや硬い">3</button>
+                        <button class="bristol-btn" onclick="selectBristol(4)" title="普通">4</button>
+                        <button class="bristol-btn" onclick="selectBristol(5)" title="やや軟らかい">5</button>
+                        <button class="bristol-btn" onclick="selectBristol(6)" title="泥状">6</button>
+                        <button class="bristol-btn" onclick="selectBristol(7)" title="水様">7</button>
+                    </div>
+                    <small style="color: #888;">1:コロコロ ← 4:普通 → 7:水様</small>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>メモ（任意）</label>
+                <textarea id="memo" rows="2" placeholder="気になることなど..."></textarea>
+            </div>
+
+            <button class="submit-btn" id="submitBtn" onclick="addRecord()" disabled>記録する</button>
+        </div>
+
+        <!-- 履歴・統計 -->
+        <div class="card">
+            <div class="tabs">
+                <button class="tab-btn active" onclick="showTab('history')">履歴</button>
+                <button class="tab-btn" onclick="showTab('stats')">統計</button>
+            </div>
+
+            <div id="historyTab">
+                <div id="historyList"></div>
+            </div>
+
+            <div id="statsTab" style="display: none;">
+                <div class="stats-grid" id="statsGrid"></div>
+                <button class="export-btn" onclick="exportCSV()">📥 CSVでエクスポート</button>
+                <button class="clear-btn" onclick="clearAllData()">🗑️ 全データを削除</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedType = null;
+        let selectedAmount = null;
+        let selectedBristol = null;
+        let records = [];
+
+        // 初期化
+        document.addEventListener('DOMContentLoaded', () => {
+            loadRecords();
+            setDefaultDateTime();
+            renderHistory();
+            renderStats();
+        });
+
+        function setDefaultDateTime() {
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            document.getElementById('datetime').value = now.toISOString().slice(0, 16);
+        }
+
+        function selectType(type) {
+            selectedType = type;
+            document.querySelectorAll('.type-btn').forEach(btn => btn.classList.remove('selected'));
+            document.querySelector(`.type-btn.${type}`).classList.add('selected');
+
+            // 便の場合はブリストルスケールを表示
+            const stoolOptions = document.getElementById('stoolOptions');
+            if (type === 'stool') {
+                stoolOptions.classList.add('visible');
+            } else {
+                stoolOptions.classList.remove('visible');
+                selectedBristol = null;
+                document.querySelectorAll('.bristol-btn').forEach(btn => btn.classList.remove('selected'));
+            }
+
+            updateSubmitButton();
+        }
+
+        function selectAmount(amount) {
+            selectedAmount = amount;
+            document.querySelectorAll('.amount-btn').forEach(btn => btn.classList.remove('selected'));
+            event.target.classList.add('selected');
+            updateSubmitButton();
+        }
+
+        function selectBristol(scale) {
+            selectedBristol = scale;
+            document.querySelectorAll('.bristol-btn').forEach(btn => btn.classList.remove('selected'));
+            event.target.classList.add('selected');
+        }
+
+        function updateSubmitButton() {
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = !(selectedType && selectedAmount);
+        }
+
+        function addRecord() {
+            const datetime = document.getElementById('datetime').value;
+            const memo = document.getElementById('memo').value;
+
+            const record = {
+                id: Date.now(),
+                type: selectedType,
+                datetime: datetime,
+                amount: selectedAmount,
+                bristol: selectedType === 'stool' ? selectedBristol : null,
+                memo: memo
+            };
+
+            records.unshift(record);
+            saveRecords();
+            renderHistory();
+            renderStats();
+            resetForm();
+        }
+
+        function resetForm() {
+            selectedType = null;
+            selectedAmount = null;
+            selectedBristol = null;
+            document.querySelectorAll('.type-btn').forEach(btn => btn.classList.remove('selected'));
+            document.querySelectorAll('.amount-btn').forEach(btn => btn.classList.remove('selected'));
+            document.querySelectorAll('.bristol-btn').forEach(btn => btn.classList.remove('selected'));
+            document.getElementById('stoolOptions').classList.remove('visible');
+            document.getElementById('memo').value = '';
+            setDefaultDateTime();
+            updateSubmitButton();
+        }
+
+        function deleteRecord(id) {
+            if (confirm('この記録を削除しますか？')) {
+                records = records.filter(r => r.id !== id);
+                saveRecords();
+                renderHistory();
+                renderStats();
+            }
+        }
+
+        function renderHistory() {
+            const list = document.getElementById('historyList');
+
+            if (records.length === 0) {
+                list.innerHTML = '<div class="empty-message">まだ記録がありません</div>';
+                return;
+            }
+
+            list.innerHTML = records.slice(0, 20).map(record => {
+                const date = new Date(record.datetime);
+                const dateStr = date.toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' });
+                const timeStr = date.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+                const emoji = record.type === 'urine' ? '💧' : '💩';
+                const typeLabel = record.type === 'urine' ? '尿' : '便';
+                const bristolInfo = record.bristol ? ` / 硬さ: ${record.bristol}` : '';
+
+                return `
+                    <div class="history-item">
+                        <div class="history-emoji">${emoji}</div>
+                        <div class="history-details">
+                            <div class="history-time">${dateStr} ${timeStr}</div>
+                            <div class="history-info">${typeLabel} / ${record.amount}${bristolInfo}</div>
+                            ${record.memo ? `<div class="history-memo">📝 ${record.memo}</div>` : ''}
+                        </div>
+                        <button class="delete-btn" onclick="deleteRecord(${record.id})">削除</button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderStats() {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const todayRecords = records.filter(r => new Date(r.datetime) >= today);
+            const todayUrine = todayRecords.filter(r => r.type === 'urine').length;
+            const todayStool = todayRecords.filter(r => r.type === 'stool').length;
+
+            // 過去7日間
+            const weekAgo = new Date(today);
+            weekAgo.setDate(weekAgo.getDate() - 7);
+            const weekRecords = records.filter(r => new Date(r.datetime) >= weekAgo);
+            const weekUrine = weekRecords.filter(r => r.type === 'urine').length;
+            const weekStool = weekRecords.filter(r => r.type === 'stool').length;
+
+            document.getElementById('statsGrid').innerHTML = `
+                <div class="stat-item">
+                    <div class="stat-value">${todayUrine}</div>
+                    <div class="stat-label">今日の尿 💧</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">${todayStool}</div>
+                    <div class="stat-label">今日の便 💩</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">${weekUrine}</div>
+                    <div class="stat-label">7日間の尿 💧</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">${weekStool}</div>
+                    <div class="stat-label">7日間の便 💩</div>
+                </div>
+                <div class="stat-item" style="grid-column: span 2;">
+                    <div class="stat-value">${records.length}</div>
+                    <div class="stat-label">総記録数</div>
+                </div>
+            `;
+        }
+
+        function showTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            document.getElementById('historyTab').style.display = tab === 'history' ? 'block' : 'none';
+            document.getElementById('statsTab').style.display = tab === 'stats' ? 'block' : 'none';
+        }
+
+        function exportCSV() {
+            if (records.length === 0) {
+                alert('エクスポートするデータがありません');
+                return;
+            }
+
+            const headers = ['日時', '種類', '量', 'ブリストルスケール', 'メモ'];
+            const rows = records.map(r => [
+                r.datetime,
+                r.type === 'urine' ? '尿' : '便',
+                r.amount,
+                r.bristol || '',
+                r.memo || ''
+            ]);
+
+            const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
+            const bom = '\uFEFF';
+            const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `excretion_records_${new Date().toISOString().slice(0,10)}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function clearAllData() {
+            if (confirm('本当に全てのデータを削除しますか？\nこの操作は取り消せません。')) {
+                records = [];
+                saveRecords();
+                renderHistory();
+                renderStats();
+            }
+        }
+
+        function saveRecords() {
+            localStorage.setItem('excretionRecords', JSON.stringify(records));
+        }
+
+        function loadRecords() {
+            const saved = localStorage.getItem('excretionRecords');
+            if (saved) {
+                records = JSON.parse(saved);
+            }
+        }
+    </script>
+</body>
+</html>
