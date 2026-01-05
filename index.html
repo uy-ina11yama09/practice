@@ -18,16 +18,51 @@
       padding: 20px;
     }
 
-    .container {
-      max-width: 600px;
-      margin: 0 auto;
-    }
-
     h1 {
       text-align: center;
       color: #333;
       margin-bottom: 24px;
       font-weight: 600;
+    }
+
+    /* 2列レイアウト */
+    .app-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .main-layout {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .left-column {
+      width: 100%;
+    }
+
+    .right-column {
+      width: 100%;
+    }
+
+    /* デスクトップ: 2列 */
+    @media (min-width: 800px) {
+      .main-layout {
+        flex-direction: row;
+        align-items: flex-start;
+      }
+
+      .left-column {
+        width: 340px;
+        flex-shrink: 0;
+        position: sticky;
+        top: 20px;
+      }
+
+      .right-column {
+        flex: 1;
+        min-width: 0;
+      }
     }
 
     /* 入力フォーム */
@@ -36,7 +71,6 @@
       padding: 20px;
       border-radius: 12px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-      margin-bottom: 24px;
     }
 
     .add-form input,
@@ -110,6 +144,14 @@
       border-color: #4a90d9;
     }
 
+    /* カウンター */
+    .counter {
+      text-align: center;
+      color: #888;
+      font-size: 14px;
+      margin-bottom: 16px;
+    }
+
     /* Todoリスト */
     .todo-list {
       list-style: none;
@@ -121,11 +163,24 @@
       padding: 16px;
       margin-bottom: 12px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-      transition: transform 0.2s, opacity 0.2s;
+      transition: transform 0.2s, opacity 0.2s, box-shadow 0.2s;
+      cursor: grab;
+      user-select: none;
     }
 
     .todo-item:hover {
       transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
+
+    .todo-item.dragging {
+      opacity: 0.5;
+      cursor: grabbing;
+    }
+
+    .todo-item.drag-over {
+      border: 2px dashed #4a90d9;
+      background: #f0f7ff;
     }
 
     .todo-item.completed {
@@ -141,6 +196,18 @@
       display: flex;
       align-items: flex-start;
       gap: 12px;
+    }
+
+    .drag-handle {
+      color: #ccc;
+      cursor: grab;
+      font-size: 18px;
+      padding: 2px;
+      flex-shrink: 0;
+    }
+
+    .drag-handle:hover {
+      color: #999;
     }
 
     .todo-checkbox {
@@ -240,38 +307,48 @@
       padding: 40px 20px;
     }
 
-    /* カウンター */
-    .counter {
+    /* ドラッグヒント */
+    .drag-hint {
       text-align: center;
-      color: #888;
-      font-size: 14px;
-      margin-bottom: 16px;
+      color: #bbb;
+      font-size: 12px;
+      margin-bottom: 12px;
     }
   </style>
 </head>
 <body>
-  <div class="container">
+  <div class="app-container">
     <h1>📝 今日のTodo</h1>
 
-    <!-- 入力フォーム -->
-    <form class="add-form" id="addForm">
-      <input type="text" id="titleInput" placeholder="タイトルを入力..." required>
-      <textarea id="detailInput" placeholder="詳細を入力（任意）..."></textarea>
-      <button type="submit">追加する</button>
-    </form>
+    <div class="main-layout">
+      <!-- 左列: 入力フォーム -->
+      <div class="left-column">
+        <form class="add-form" id="addForm">
+          <input type="text" id="titleInput" placeholder="タイトルを入力..." required>
+          <textarea id="detailInput" placeholder="詳細を入力（任意）..."></textarea>
+          <button type="submit">追加する</button>
+        </form>
+      </div>
 
-    <!-- フィルター -->
-    <div class="filters">
-      <button class="filter-btn active" data-filter="all">すべて</button>
-      <button class="filter-btn" data-filter="active">未完了</button>
-      <button class="filter-btn" data-filter="completed">完了</button>
+      <!-- 右列: Todoリスト -->
+      <div class="right-column">
+        <!-- フィルター -->
+        <div class="filters">
+          <button class="filter-btn active" data-filter="all">すべて</button>
+          <button class="filter-btn" data-filter="active">未完了</button>
+          <button class="filter-btn" data-filter="completed">完了</button>
+        </div>
+
+        <!-- カウンター -->
+        <div class="counter" id="counter"></div>
+
+        <!-- ドラッグヒント -->
+        <div class="drag-hint">ドラッグで並び替えできます</div>
+
+        <!-- Todoリスト -->
+        <ul class="todo-list" id="todoList"></ul>
+      </div>
     </div>
-
-    <!-- カウンター -->
-    <div class="counter" id="counter"></div>
-
-    <!-- Todoリスト -->
-    <ul class="todo-list" id="todoList"></ul>
   </div>
 
   <script>
@@ -281,6 +358,7 @@
     // 状態管理
     let todos = [];
     let currentFilter = 'all';
+    let draggedId = null;
 
     // DOM要素
     const addForm = document.getElementById('addForm');
@@ -391,11 +469,70 @@
         filtered = filtered.filter(t => t.completed);
       }
 
-      // 未完了を上、完了を下に並べる
+      // 未完了を上、完了を下に並べる（ただしドラッグ順は維持）
       const active = filtered.filter(t => !t.completed);
       const completed = filtered.filter(t => t.completed);
 
       return { active, completed, all: [...active, ...completed] };
+    }
+
+    // ドラッグ&ドロップ処理
+    function setupDragAndDrop() {
+      const items = todoList.querySelectorAll('.todo-item');
+
+      items.forEach(item => {
+        item.setAttribute('draggable', 'true');
+
+        item.addEventListener('dragstart', (e) => {
+          draggedId = parseInt(item.dataset.id);
+          item.classList.add('dragging');
+          e.dataTransfer.effectAllowed = 'move';
+        });
+
+        item.addEventListener('dragend', () => {
+          item.classList.remove('dragging');
+          draggedId = null;
+          // すべてのdrag-overクラスを削除
+          items.forEach(i => i.classList.remove('drag-over'));
+        });
+
+        item.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          const targetId = parseInt(item.dataset.id);
+          if (draggedId !== null && draggedId !== targetId) {
+            item.classList.add('drag-over');
+          }
+        });
+
+        item.addEventListener('dragleave', () => {
+          item.classList.remove('drag-over');
+        });
+
+        item.addEventListener('drop', (e) => {
+          e.preventDefault();
+          item.classList.remove('drag-over');
+
+          const targetId = parseInt(item.dataset.id);
+          if (draggedId !== null && draggedId !== targetId) {
+            reorderTodos(draggedId, targetId);
+          }
+        });
+      });
+    }
+
+    // Todo並び替え
+    function reorderTodos(fromId, toId) {
+      const fromIndex = todos.findIndex(t => t.id === fromId);
+      const toIndex = todos.findIndex(t => t.id === toId);
+
+      if (fromIndex === -1 || toIndex === -1) return;
+
+      const [removed] = todos.splice(fromIndex, 1);
+      todos.splice(toIndex, 0, removed);
+
+      saveTodos();
+      render();
     }
 
     // 描画
@@ -449,6 +586,9 @@
           }
         });
       });
+
+      // ドラッグ&ドロップ設定
+      setupDragAndDrop();
     }
 
     // TodoのHTML生成
@@ -459,8 +599,9 @@
         : '';
 
       return `
-        <li class="todo-item ${completedClass}">
+        <li class="todo-item ${completedClass}" data-id="${todo.id}">
           <div class="todo-header">
+            <span class="drag-handle">⋮⋮</span>
             <div class="todo-checkbox" data-id="${todo.id}"></div>
             <div class="todo-content">
               <div class="todo-title">${escapeHTML(todo.title)}</div>
