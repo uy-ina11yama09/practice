@@ -163,24 +163,64 @@
       padding: 16px;
       margin-bottom: 12px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-      transition: transform 0.2s, opacity 0.2s, box-shadow 0.2s;
+      transition: transform 0.25s cubic-bezier(0.2, 0, 0, 1),
+                  opacity 0.2s,
+                  box-shadow 0.2s,
+                  margin 0.25s cubic-bezier(0.2, 0, 0, 1);
       cursor: grab;
       user-select: none;
+      position: relative;
     }
 
     .todo-item:hover {
-      transform: translateY(-2px);
       box-shadow: 0 4px 12px rgba(0,0,0,0.12);
     }
 
     .todo-item.dragging {
-      opacity: 0.5;
-      cursor: grabbing;
+      opacity: 0;
+      pointer-events: none;
     }
 
-    .todo-item.drag-over {
+    /* ドラッグ中のゴースト */
+    .drag-ghost {
+      position: fixed;
+      pointer-events: none;
+      z-index: 1000;
+      background: #fff;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+      opacity: 0.95;
+      transform: rotate(2deg) scale(1.02);
+      transition: transform 0.1s ease-out;
+    }
+
+    /* ドロップ位置のプレースホルダー */
+    .drop-placeholder {
+      background: linear-gradient(135deg, #e8f4fd 0%, #d4e8f8 100%);
       border: 2px dashed #4a90d9;
-      background: #f0f7ff;
+      border-radius: 12px;
+      margin-bottom: 12px;
+      transition: height 0.2s cubic-bezier(0.2, 0, 0, 1);
+    }
+
+    /* ドラッグ中の他アイテムのシフト */
+    .todo-item.shift-down {
+      transform: translateY(0);
+    }
+
+    .todo-item.shift-up {
+      transform: translateY(0);
+    }
+
+    /* ドラッグ中はホバー効果を無効化 */
+    body.is-dragging .todo-item:hover {
+      transform: none;
+    }
+
+    body.is-dragging {
+      cursor: grabbing !important;
+      user-select: none;
     }
 
     .todo-item.completed {
@@ -612,63 +652,221 @@
       return { active, completed, all: [...active, ...completed] };
     }
 
-    // ドラッグ&ドロップ処理
+    // ドラッグ&ドロップ処理（ヌルヌル版）
+    let dragState = {
+      isDragging: false,
+      draggedElement: null,
+      ghost: null,
+      placeholder: null,
+      startY: 0,
+      offsetY: 0,
+      currentDropIndex: -1
+    };
+
     function setupDragAndDrop() {
-      const items = todoList.querySelectorAll('.todo-item');
+      const items = todoList.querySelectorAll('.todo-item:not(.editing)');
 
       items.forEach(item => {
-        item.setAttribute('draggable', 'true');
+        // ドラッグハンドルでのみドラッグ開始
+        const handle = item.querySelector('.drag-handle');
+        if (!handle) return;
 
-        item.addEventListener('dragstart', (e) => {
-          draggedId = parseInt(item.dataset.id);
-          item.classList.add('dragging');
-          e.dataTransfer.effectAllowed = 'move';
-        });
-
-        item.addEventListener('dragend', () => {
-          item.classList.remove('dragging');
-          draggedId = null;
-          // すべてのdrag-overクラスを削除
-          items.forEach(i => i.classList.remove('drag-over'));
-        });
-
-        item.addEventListener('dragover', (e) => {
-          e.preventDefault();
-          e.dataTransfer.dropEffect = 'move';
-          const targetId = parseInt(item.dataset.id);
-          if (draggedId !== null && draggedId !== targetId) {
-            item.classList.add('drag-over');
-          }
-        });
-
-        item.addEventListener('dragleave', () => {
-          item.classList.remove('drag-over');
-        });
-
-        item.addEventListener('drop', (e) => {
-          e.preventDefault();
-          item.classList.remove('drag-over');
-
-          const targetId = parseInt(item.dataset.id);
-          if (draggedId !== null && draggedId !== targetId) {
-            reorderTodos(draggedId, targetId);
-          }
-        });
+        handle.addEventListener('mousedown', (e) => startDrag(e, item));
+        handle.addEventListener('touchstart', (e) => startDrag(e, item), { passive: false });
       });
     }
 
-    // Todo並び替え
-    function reorderTodos(fromId, toId) {
-      const fromIndex = todos.findIndex(t => t.id === fromId);
-      const toIndex = todos.findIndex(t => t.id === toId);
+    function startDrag(e, item) {
+      if (editingId !== null) return;
+      e.preventDefault();
 
-      if (fromIndex === -1 || toIndex === -1) return;
+      const touch = e.touches ? e.touches[0] : e;
+      const rect = item.getBoundingClientRect();
 
-      const [removed] = todos.splice(fromIndex, 1);
-      todos.splice(toIndex, 0, removed);
+      dragState.isDragging = true;
+      dragState.draggedElement = item;
+      dragState.startY = touch.clientY;
+      dragState.offsetY = touch.clientY - rect.top;
+      draggedId = parseInt(item.dataset.id);
 
-      saveTodos();
+      // ゴースト要素を作成
+      createGhost(item, touch.clientX, touch.clientY);
+
+      // プレースホルダーを作成
+      createPlaceholder(rect.height);
+
+      // 元の要素を非表示に
+      item.classList.add('dragging');
+      document.body.classList.add('is-dragging');
+
+      // イベントリスナーを追加
+      document.addEventListener('mousemove', onDragMove);
+      document.addEventListener('mouseup', onDragEnd);
+      document.addEventListener('touchmove', onDragMove, { passive: false });
+      document.addEventListener('touchend', onDragEnd);
+    }
+
+    function createGhost(item, x, y) {
+      const ghost = item.cloneNode(true);
+      ghost.classList.add('drag-ghost');
+      ghost.classList.remove('dragging');
+      ghost.style.width = item.offsetWidth + 'px';
+      ghost.style.left = (x - item.offsetWidth / 2) + 'px';
+      ghost.style.top = (y - dragState.offsetY) + 'px';
+      document.body.appendChild(ghost);
+      dragState.ghost = ghost;
+    }
+
+    function createPlaceholder(height) {
+      const placeholder = document.createElement('li');
+      placeholder.className = 'drop-placeholder';
+      placeholder.style.height = height + 'px';
+      dragState.placeholder = placeholder;
+
+      // 元の位置にプレースホルダーを挿入
+      dragState.draggedElement.parentNode.insertBefore(placeholder, dragState.draggedElement);
+    }
+
+    function onDragMove(e) {
+      if (!dragState.isDragging) return;
+      e.preventDefault();
+
+      const touch = e.touches ? e.touches[0] : e;
+
+      // ゴーストをマウスに追従
+      if (dragState.ghost) {
+        dragState.ghost.style.left = (touch.clientX - dragState.draggedElement.offsetWidth / 2) + 'px';
+        dragState.ghost.style.top = (touch.clientY - dragState.offsetY) + 'px';
+      }
+
+      // ドロップ位置を計算
+      updateDropPosition(touch.clientY);
+    }
+
+    function updateDropPosition(clientY) {
+      const items = Array.from(todoList.querySelectorAll('.todo-item:not(.dragging)'));
+      const placeholder = dragState.placeholder;
+
+      if (!placeholder) return;
+
+      let insertBeforeElement = null;
+      let newIndex = items.length;
+
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        const rect = item.getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+
+        if (clientY < midY) {
+          insertBeforeElement = item;
+          newIndex = i;
+          break;
+        }
+      }
+
+      // プレースホルダーの位置を更新（インデックスが変わった場合のみ）
+      if (newIndex !== dragState.currentDropIndex) {
+        dragState.currentDropIndex = newIndex;
+
+        if (insertBeforeElement) {
+          // .section-title をスキップ
+          if (insertBeforeElement.classList.contains('section-title')) {
+            const nextSibling = insertBeforeElement.nextElementSibling;
+            if (nextSibling && nextSibling.classList.contains('todo-item')) {
+              insertBeforeElement = nextSibling;
+            }
+          }
+          todoList.insertBefore(placeholder, insertBeforeElement);
+        } else {
+          todoList.appendChild(placeholder);
+        }
+      }
+    }
+
+    function onDragEnd(e) {
+      if (!dragState.isDragging) return;
+
+      document.removeEventListener('mousemove', onDragMove);
+      document.removeEventListener('mouseup', onDragEnd);
+      document.removeEventListener('touchmove', onDragMove);
+      document.removeEventListener('touchend', onDragEnd);
+
+      // ドロップ位置を確定
+      const placeholder = dragState.placeholder;
+      const draggedElement = dragState.draggedElement;
+
+      if (placeholder && draggedElement) {
+        // プレースホルダーの位置に移動
+        const items = Array.from(todoList.querySelectorAll('.todo-item:not(.dragging)'));
+        const placeholderIndex = Array.from(todoList.children).indexOf(placeholder);
+
+        // 新しい順序でtodosを更新
+        const allTodoItems = Array.from(todoList.querySelectorAll('.todo-item'));
+        const newOrder = [];
+
+        allTodoItems.forEach((item, index) => {
+          if (item === draggedElement) return;
+          const id = parseInt(item.dataset.id);
+          const todo = todos.find(t => t.id === id);
+          if (todo) newOrder.push(todo);
+        });
+
+        // ドラッグしたアイテムを正しい位置に挿入
+        const draggedTodo = todos.find(t => t.id === draggedId);
+        if (draggedTodo) {
+          // プレースホルダーの位置を計算
+          let insertIndex = 0;
+          const children = Array.from(todoList.children);
+          for (let i = 0; i < children.length; i++) {
+            if (children[i] === placeholder) {
+              break;
+            }
+            if (children[i].classList.contains('todo-item') && children[i] !== draggedElement) {
+              insertIndex++;
+            }
+          }
+
+          newOrder.splice(insertIndex, 0, draggedTodo);
+
+          // 完了/未完了の相対順序を維持しながら、todos配列を更新
+          const activeItems = newOrder.filter(t => !t.completed);
+          const completedItems = newOrder.filter(t => t.completed);
+          todos = [...activeItems, ...completedItems];
+
+          saveTodos();
+        }
+      }
+
+      // クリーンアップ
+      cleanupDrag();
+
+      // 再描画
       render();
+    }
+
+    function cleanupDrag() {
+      if (dragState.ghost) {
+        dragState.ghost.remove();
+      }
+      if (dragState.placeholder) {
+        dragState.placeholder.remove();
+      }
+      if (dragState.draggedElement) {
+        dragState.draggedElement.classList.remove('dragging');
+      }
+
+      document.body.classList.remove('is-dragging');
+
+      dragState = {
+        isDragging: false,
+        draggedElement: null,
+        ghost: null,
+        placeholder: null,
+        startY: 0,
+        offsetY: 0,
+        currentDropIndex: -1
+      };
+      draggedId = null;
     }
 
     // 描画
