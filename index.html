@@ -163,24 +163,64 @@
       padding: 16px;
       margin-bottom: 12px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-      transition: transform 0.2s, opacity 0.2s, box-shadow 0.2s;
+      transition: transform 0.25s cubic-bezier(0.2, 0, 0, 1),
+                  opacity 0.2s,
+                  box-shadow 0.2s,
+                  margin 0.25s cubic-bezier(0.2, 0, 0, 1);
       cursor: grab;
       user-select: none;
+      position: relative;
     }
 
     .todo-item:hover {
-      transform: translateY(-2px);
       box-shadow: 0 4px 12px rgba(0,0,0,0.12);
     }
 
     .todo-item.dragging {
-      opacity: 0.5;
-      cursor: grabbing;
+      opacity: 0;
+      pointer-events: none;
     }
 
-    .todo-item.drag-over {
+    /* ドラッグ中のゴースト */
+    .drag-ghost {
+      position: fixed;
+      pointer-events: none;
+      z-index: 1000;
+      background: #fff;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+      opacity: 0.95;
+      transform: rotate(2deg) scale(1.02);
+      transition: transform 0.1s ease-out;
+    }
+
+    /* ドロップ位置のプレースホルダー */
+    .drop-placeholder {
+      background: linear-gradient(135deg, #e8f4fd 0%, #d4e8f8 100%);
       border: 2px dashed #4a90d9;
-      background: #f0f7ff;
+      border-radius: 12px;
+      margin-bottom: 12px;
+      transition: height 0.2s cubic-bezier(0.2, 0, 0, 1);
+    }
+
+    /* ドラッグ中の他アイテムのシフト */
+    .todo-item.shift-down {
+      transform: translateY(0);
+    }
+
+    .todo-item.shift-up {
+      transform: translateY(0);
+    }
+
+    /* ドラッグ中はホバー効果を無効化 */
+    body.is-dragging .todo-item:hover {
+      transform: none;
+    }
+
+    body.is-dragging {
+      cursor: grabbing !important;
+      user-select: none;
     }
 
     .todo-item.completed {
@@ -314,6 +354,169 @@
       font-size: 12px;
       margin-bottom: 12px;
     }
+
+    /* 編集モード */
+    .todo-item.editing {
+      cursor: default;
+    }
+
+    .todo-item.editing .drag-handle,
+    .todo-item.editing .todo-checkbox {
+      visibility: hidden;
+    }
+
+    .edit-form {
+      flex: 1;
+    }
+
+    .edit-input,
+    .edit-textarea {
+      width: 100%;
+      padding: 8px 10px;
+      border: 2px solid #4a90d9;
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: inherit;
+    }
+
+    .edit-input {
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .edit-textarea {
+      resize: vertical;
+      min-height: 60px;
+    }
+
+    .edit-buttons {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .edit-save,
+    .edit-cancel {
+      flex: 1;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .edit-save {
+      background: #4a90d9;
+      color: #fff;
+    }
+
+    .edit-save:hover {
+      background: #3a7bc8;
+    }
+
+    .edit-cancel {
+      background: #e0e0e0;
+      color: #333;
+    }
+
+    .edit-cancel:hover {
+      background: #d0d0d0;
+    }
+
+    /* ボタングループ */
+    .todo-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .todo-edit {
+      padding: 6px 12px;
+      border: none;
+      background: #888;
+      color: #fff;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .todo-edit:hover {
+      background: #666;
+    }
+
+    /* 優先度タグ */
+    .priority-tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+
+    .priority-high {
+      background: #ffebee;
+      color: #c62828;
+    }
+
+    .priority-medium {
+      background: #fff3e0;
+      color: #ef6c00;
+    }
+
+    .priority-low {
+      background: #e3f2fd;
+      color: #1565c0;
+    }
+
+    /* 優先度選択 */
+    .priority-select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      background: #fff;
+      transition: border-color 0.2s;
+    }
+
+    .priority-select:focus {
+      outline: none;
+      border-color: #4a90d9;
+    }
+
+    /* 並び替えオプション */
+    .sort-options {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      font-size: 13px;
+      color: #666;
+    }
+
+    .sort-options label {
+      white-space: nowrap;
+    }
+
+    .sort-select {
+      flex: 1;
+      padding: 6px 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      background: #fff;
+    }
+
+    .sort-select:focus {
+      outline: none;
+      border-color: #4a90d9;
+    }
   </style>
 </head>
 <body>
@@ -326,6 +529,12 @@
         <form class="add-form" id="addForm">
           <input type="text" id="titleInput" placeholder="タイトルを入力..." required>
           <textarea id="detailInput" placeholder="詳細を入力（任意）..."></textarea>
+          <select id="priorityInput" class="priority-select">
+            <option value="none">優先度: なし</option>
+            <option value="high">優先度: 高</option>
+            <option value="medium">優先度: 中</option>
+            <option value="low">優先度: 低</option>
+          </select>
           <button type="submit">追加する</button>
         </form>
       </div>
@@ -342,8 +551,18 @@
         <!-- カウンター -->
         <div class="counter" id="counter"></div>
 
+        <!-- 並び替えオプション -->
+        <div class="sort-options">
+          <label>並び替え:</label>
+          <select id="sortSelect" class="sort-select">
+            <option value="manual">手動（ドラッグ）</option>
+            <option value="priority">優先度順</option>
+            <option value="created">作成日順</option>
+          </select>
+        </div>
+
         <!-- ドラッグヒント -->
-        <div class="drag-hint">ドラッグで並び替えできます</div>
+        <div class="drag-hint" id="dragHint">ドラッグで並び替えできます</div>
 
         <!-- Todoリスト -->
         <ul class="todo-list" id="todoList"></ul>
@@ -358,15 +577,24 @@
     // 状態管理
     let todos = [];
     let currentFilter = 'all';
+    let currentSort = 'manual';
     let draggedId = null;
+    let editingId = null;
+
+    // 優先度の順序（ソート用）
+    const priorityOrder = { high: 0, medium: 1, low: 2, none: 3 };
+    const priorityLabels = { high: '高', medium: '中', low: '低', none: '' };
 
     // DOM要素
     const addForm = document.getElementById('addForm');
     const titleInput = document.getElementById('titleInput');
     const detailInput = document.getElementById('detailInput');
+    const priorityInput = document.getElementById('priorityInput');
     const todoList = document.getElementById('todoList');
     const counter = document.getElementById('counter');
     const filterBtns = document.querySelectorAll('.filter-btn');
+    const sortSelect = document.getElementById('sortSelect');
+    const dragHint = document.getElementById('dragHint');
 
     // 初期化
     function init() {
@@ -405,12 +633,21 @@
           render();
         });
       });
+
+      // 並び替え選択
+      sortSelect.addEventListener('change', () => {
+        currentSort = sortSelect.value;
+        // 手動以外はドラッグヒントを非表示
+        dragHint.style.display = currentSort === 'manual' ? 'block' : 'none';
+        render();
+      });
     }
 
     // Todo追加
     function addTodo() {
       const title = titleInput.value.trim();
       const detail = detailInput.value.trim();
+      const priority = priorityInput.value;
 
       if (!title) return;
 
@@ -418,6 +655,7 @@
         id: Date.now(),
         title,
         detail,
+        priority,
         completed: false,
         createdAt: new Date().toISOString()
       };
@@ -429,6 +667,7 @@
       // フォームリセット
       titleInput.value = '';
       detailInput.value = '';
+      priorityInput.value = 'none';
       titleInput.focus();
     }
 
@@ -446,6 +685,54 @@
     function deleteTodo(id) {
       todos = todos.filter(t => t.id !== id);
       saveTodos();
+      render();
+    }
+
+    // 編集モード開始
+    function startEdit(id) {
+      editingId = id;
+      render();
+      // フォーカスを当てる
+      const input = document.querySelector('.edit-input');
+      if (input) {
+        input.focus();
+        input.select();
+      }
+    }
+
+    // 編集をキャンセル
+    function cancelEdit() {
+      editingId = null;
+      render();
+    }
+
+    // 編集を保存
+    function saveEdit(id) {
+      const titleInput = document.querySelector('.edit-input');
+      const detailInput = document.querySelector('.edit-textarea');
+      const prioritySelect = document.querySelector('.edit-priority');
+
+      if (!titleInput) return;
+
+      const newTitle = titleInput.value.trim();
+      const newDetail = detailInput ? detailInput.value.trim() : '';
+      const newPriority = prioritySelect ? prioritySelect.value : 'none';
+
+      if (!newTitle) {
+        alert('タイトルを入力してください');
+        titleInput.focus();
+        return;
+      }
+
+      const todo = todos.find(t => t.id === id);
+      if (todo) {
+        todo.title = newTitle;
+        todo.detail = newDetail;
+        todo.priority = newPriority;
+        saveTodos();
+      }
+
+      editingId = null;
       render();
     }
 
@@ -469,70 +756,247 @@
         filtered = filtered.filter(t => t.completed);
       }
 
-      // 未完了を上、完了を下に並べる（ただしドラッグ順は維持）
-      const active = filtered.filter(t => !t.completed);
-      const completed = filtered.filter(t => t.completed);
+      // 未完了を上、完了を下に並べる
+      let active = filtered.filter(t => !t.completed);
+      let completed = filtered.filter(t => t.completed);
+
+      // ソート適用
+      if (currentSort === 'priority') {
+        const sortByPriority = (a, b) => {
+          const pa = priorityOrder[a.priority || 'none'];
+          const pb = priorityOrder[b.priority || 'none'];
+          return pa - pb;
+        };
+        active = active.sort(sortByPriority);
+        completed = completed.sort(sortByPriority);
+      } else if (currentSort === 'created') {
+        const sortByCreated = (a, b) => new Date(b.createdAt) - new Date(a.createdAt);
+        active = active.sort(sortByCreated);
+        completed = completed.sort(sortByCreated);
+      }
+      // manual の場合はそのまま（ドラッグ順）
 
       return { active, completed, all: [...active, ...completed] };
     }
 
-    // ドラッグ&ドロップ処理
+    // ドラッグ&ドロップ処理（ヌルヌル版）
+    let dragState = {
+      isDragging: false,
+      draggedElement: null,
+      ghost: null,
+      placeholder: null,
+      startY: 0,
+      offsetY: 0,
+      currentDropIndex: -1
+    };
+
     function setupDragAndDrop() {
-      const items = todoList.querySelectorAll('.todo-item');
+      // 手動ソート以外はドラッグ無効
+      if (currentSort !== 'manual') return;
+
+      const items = todoList.querySelectorAll('.todo-item:not(.editing)');
 
       items.forEach(item => {
-        item.setAttribute('draggable', 'true');
+        // ドラッグハンドルでのみドラッグ開始
+        const handle = item.querySelector('.drag-handle');
+        if (!handle) return;
 
-        item.addEventListener('dragstart', (e) => {
-          draggedId = parseInt(item.dataset.id);
-          item.classList.add('dragging');
-          e.dataTransfer.effectAllowed = 'move';
-        });
-
-        item.addEventListener('dragend', () => {
-          item.classList.remove('dragging');
-          draggedId = null;
-          // すべてのdrag-overクラスを削除
-          items.forEach(i => i.classList.remove('drag-over'));
-        });
-
-        item.addEventListener('dragover', (e) => {
-          e.preventDefault();
-          e.dataTransfer.dropEffect = 'move';
-          const targetId = parseInt(item.dataset.id);
-          if (draggedId !== null && draggedId !== targetId) {
-            item.classList.add('drag-over');
-          }
-        });
-
-        item.addEventListener('dragleave', () => {
-          item.classList.remove('drag-over');
-        });
-
-        item.addEventListener('drop', (e) => {
-          e.preventDefault();
-          item.classList.remove('drag-over');
-
-          const targetId = parseInt(item.dataset.id);
-          if (draggedId !== null && draggedId !== targetId) {
-            reorderTodos(draggedId, targetId);
-          }
-        });
+        handle.addEventListener('mousedown', (e) => startDrag(e, item));
+        handle.addEventListener('touchstart', (e) => startDrag(e, item), { passive: false });
       });
     }
 
-    // Todo並び替え
-    function reorderTodos(fromId, toId) {
-      const fromIndex = todos.findIndex(t => t.id === fromId);
-      const toIndex = todos.findIndex(t => t.id === toId);
+    function startDrag(e, item) {
+      if (editingId !== null) return;
+      e.preventDefault();
 
-      if (fromIndex === -1 || toIndex === -1) return;
+      const touch = e.touches ? e.touches[0] : e;
+      const rect = item.getBoundingClientRect();
 
-      const [removed] = todos.splice(fromIndex, 1);
-      todos.splice(toIndex, 0, removed);
+      dragState.isDragging = true;
+      dragState.draggedElement = item;
+      dragState.startY = touch.clientY;
+      dragState.offsetY = touch.clientY - rect.top;
+      draggedId = parseInt(item.dataset.id);
 
-      saveTodos();
+      // ゴースト要素を作成
+      createGhost(item, touch.clientX, touch.clientY);
+
+      // プレースホルダーを作成
+      createPlaceholder(rect.height);
+
+      // 元の要素を非表示に
+      item.classList.add('dragging');
+      document.body.classList.add('is-dragging');
+
+      // イベントリスナーを追加
+      document.addEventListener('mousemove', onDragMove);
+      document.addEventListener('mouseup', onDragEnd);
+      document.addEventListener('touchmove', onDragMove, { passive: false });
+      document.addEventListener('touchend', onDragEnd);
+    }
+
+    function createGhost(item, x, y) {
+      const ghost = item.cloneNode(true);
+      ghost.classList.add('drag-ghost');
+      ghost.classList.remove('dragging');
+      ghost.style.width = item.offsetWidth + 'px';
+      ghost.style.left = (x - item.offsetWidth / 2) + 'px';
+      ghost.style.top = (y - dragState.offsetY) + 'px';
+      document.body.appendChild(ghost);
+      dragState.ghost = ghost;
+    }
+
+    function createPlaceholder(height) {
+      const placeholder = document.createElement('li');
+      placeholder.className = 'drop-placeholder';
+      placeholder.style.height = height + 'px';
+      dragState.placeholder = placeholder;
+
+      // 元の位置にプレースホルダーを挿入
+      dragState.draggedElement.parentNode.insertBefore(placeholder, dragState.draggedElement);
+    }
+
+    function onDragMove(e) {
+      if (!dragState.isDragging) return;
+      e.preventDefault();
+
+      const touch = e.touches ? e.touches[0] : e;
+
+      // ゴーストをマウスに追従
+      if (dragState.ghost) {
+        dragState.ghost.style.left = (touch.clientX - dragState.draggedElement.offsetWidth / 2) + 'px';
+        dragState.ghost.style.top = (touch.clientY - dragState.offsetY) + 'px';
+      }
+
+      // ドロップ位置を計算
+      updateDropPosition(touch.clientY);
+    }
+
+    function updateDropPosition(clientY) {
+      const items = Array.from(todoList.querySelectorAll('.todo-item:not(.dragging)'));
+      const placeholder = dragState.placeholder;
+
+      if (!placeholder) return;
+
+      let insertBeforeElement = null;
+      let newIndex = items.length;
+
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        const rect = item.getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+
+        if (clientY < midY) {
+          insertBeforeElement = item;
+          newIndex = i;
+          break;
+        }
+      }
+
+      // プレースホルダーの位置を更新（インデックスが変わった場合のみ）
+      if (newIndex !== dragState.currentDropIndex) {
+        dragState.currentDropIndex = newIndex;
+
+        if (insertBeforeElement) {
+          // .section-title をスキップ
+          if (insertBeforeElement.classList.contains('section-title')) {
+            const nextSibling = insertBeforeElement.nextElementSibling;
+            if (nextSibling && nextSibling.classList.contains('todo-item')) {
+              insertBeforeElement = nextSibling;
+            }
+          }
+          todoList.insertBefore(placeholder, insertBeforeElement);
+        } else {
+          todoList.appendChild(placeholder);
+        }
+      }
+    }
+
+    function onDragEnd(e) {
+      if (!dragState.isDragging) return;
+
+      document.removeEventListener('mousemove', onDragMove);
+      document.removeEventListener('mouseup', onDragEnd);
+      document.removeEventListener('touchmove', onDragMove);
+      document.removeEventListener('touchend', onDragEnd);
+
+      // ドロップ位置を確定
+      const placeholder = dragState.placeholder;
+      const draggedElement = dragState.draggedElement;
+
+      if (placeholder && draggedElement) {
+        // プレースホルダーの位置に移動
+        const items = Array.from(todoList.querySelectorAll('.todo-item:not(.dragging)'));
+        const placeholderIndex = Array.from(todoList.children).indexOf(placeholder);
+
+        // 新しい順序でtodosを更新
+        const allTodoItems = Array.from(todoList.querySelectorAll('.todo-item'));
+        const newOrder = [];
+
+        allTodoItems.forEach((item, index) => {
+          if (item === draggedElement) return;
+          const id = parseInt(item.dataset.id);
+          const todo = todos.find(t => t.id === id);
+          if (todo) newOrder.push(todo);
+        });
+
+        // ドラッグしたアイテムを正しい位置に挿入
+        const draggedTodo = todos.find(t => t.id === draggedId);
+        if (draggedTodo) {
+          // プレースホルダーの位置を計算
+          let insertIndex = 0;
+          const children = Array.from(todoList.children);
+          for (let i = 0; i < children.length; i++) {
+            if (children[i] === placeholder) {
+              break;
+            }
+            if (children[i].classList.contains('todo-item') && children[i] !== draggedElement) {
+              insertIndex++;
+            }
+          }
+
+          newOrder.splice(insertIndex, 0, draggedTodo);
+
+          // 完了/未完了の相対順序を維持しながら、todos配列を更新
+          const activeItems = newOrder.filter(t => !t.completed);
+          const completedItems = newOrder.filter(t => t.completed);
+          todos = [...activeItems, ...completedItems];
+
+          saveTodos();
+        }
+      }
+
+      // クリーンアップ
+      cleanupDrag();
+
+      // 再描画
       render();
+    }
+
+    function cleanupDrag() {
+      if (dragState.ghost) {
+        dragState.ghost.remove();
+      }
+      if (dragState.placeholder) {
+        dragState.placeholder.remove();
+      }
+      if (dragState.draggedElement) {
+        dragState.draggedElement.classList.remove('dragging');
+      }
+
+      document.body.classList.remove('is-dragging');
+
+      dragState = {
+        isDragging: false,
+        draggedElement: null,
+        ghost: null,
+        placeholder: null,
+        startY: 0,
+        offsetY: 0,
+        currentDropIndex: -1
+      };
+      draggedId = null;
     }
 
     // 描画
@@ -587,15 +1051,91 @@
         });
       });
 
+      // 編集ボタン
+      todoList.querySelectorAll('.todo-edit').forEach(btn => {
+        btn.addEventListener('click', () => {
+          startEdit(parseInt(btn.dataset.id));
+        });
+      });
+
+      // 編集保存ボタン
+      todoList.querySelectorAll('.edit-save').forEach(btn => {
+        btn.addEventListener('click', () => {
+          saveEdit(parseInt(btn.dataset.id));
+        });
+      });
+
+      // 編集キャンセルボタン
+      todoList.querySelectorAll('.edit-cancel').forEach(btn => {
+        btn.addEventListener('click', () => {
+          cancelEdit();
+        });
+      });
+
+      // 編集フォームでEnterキーで保存
+      const editInput = todoList.querySelector('.edit-input');
+      if (editInput) {
+        editInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            saveEdit(editingId);
+          } else if (e.key === 'Escape') {
+            cancelEdit();
+          }
+        });
+      }
+
+      const editTextarea = todoList.querySelector('.edit-textarea');
+      if (editTextarea) {
+        editTextarea.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') {
+            cancelEdit();
+          }
+        });
+      }
+
       // ドラッグ&ドロップ設定
       setupDragAndDrop();
     }
 
     // TodoのHTML生成
     function createTodoHTML(todo) {
+      const isEditing = editingId === todo.id;
       const completedClass = todo.completed ? 'completed' : '';
+      const editingClass = isEditing ? 'editing' : '';
+      const priority = todo.priority || 'none';
+
+      if (isEditing) {
+        return `
+          <li class="todo-item ${editingClass}" data-id="${todo.id}">
+            <div class="todo-header">
+              <span class="drag-handle">⋮⋮</span>
+              <div class="todo-checkbox" data-id="${todo.id}"></div>
+              <div class="edit-form">
+                <input type="text" class="edit-input" value="${escapeHTML(todo.title)}" placeholder="タイトル">
+                <textarea class="edit-textarea" placeholder="詳細（任意）">${escapeHTML(todo.detail || '')}</textarea>
+                <select class="edit-priority priority-select">
+                  <option value="none" ${priority === 'none' ? 'selected' : ''}>優先度: なし</option>
+                  <option value="high" ${priority === 'high' ? 'selected' : ''}>優先度: 高</option>
+                  <option value="medium" ${priority === 'medium' ? 'selected' : ''}>優先度: 中</option>
+                  <option value="low" ${priority === 'low' ? 'selected' : ''}>優先度: 低</option>
+                </select>
+                <div class="edit-buttons">
+                  <button class="edit-save" data-id="${todo.id}">保存</button>
+                  <button class="edit-cancel">キャンセル</button>
+                </div>
+              </div>
+            </div>
+          </li>
+        `;
+      }
+
       const detailHTML = todo.detail
         ? `<div class="todo-detail">${escapeHTML(todo.detail)}</div>`
+        : '';
+
+      const priorityTagHTML = priority !== 'none'
+        ? `<span class="priority-tag priority-${priority}">${priorityLabels[priority]}</span>`
         : '';
 
       return `
@@ -604,13 +1144,16 @@
             <span class="drag-handle">⋮⋮</span>
             <div class="todo-checkbox" data-id="${todo.id}"></div>
             <div class="todo-content">
-              <div class="todo-title">${escapeHTML(todo.title)}</div>
+              <div class="todo-title">${escapeHTML(todo.title)}${priorityTagHTML}</div>
               ${detailHTML}
             </div>
           </div>
           <div class="todo-meta">
             <span class="todo-date">${formatDate(todo.createdAt)}</span>
-            <button class="todo-delete" data-id="${todo.id}">削除</button>
+            <div class="todo-actions">
+              <button class="todo-edit" data-id="${todo.id}">編集</button>
+              <button class="todo-delete" data-id="${todo.id}">削除</button>
+            </div>
           </div>
         </li>
       `;
