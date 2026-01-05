@@ -267,10 +267,26 @@
 
   async function initDashboard() {
     try {
-      // ダッシュボードHTMLを挿入
-      const portal = document.querySelector('.gaia-portal-content');
+      // ダッシュボードHTMLを挿入（複数のセレクタを試す）
+      const selectors = [
+        '.gaia-portal-content',
+        '.ocean-portal-body',
+        '.gaia-argoui-portal-body',
+        '[class*="portal-body"]',
+        '[class*="portal-content"]'
+      ];
+
+      let portal = null;
+      for (const selector of selectors) {
+        portal = document.querySelector(selector);
+        if (portal) {
+          console.log('ポータル要素が見つかりました:', selector);
+          break;
+        }
+      }
+
       if (!portal) {
-        console.error('ポータルコンテンツが見つかりません');
+        console.error('ポータルコンテンツが見つかりません。試したセレクタ:', selectors);
         return;
       }
 
