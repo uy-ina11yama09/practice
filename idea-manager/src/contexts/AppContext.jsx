@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import {
   getIdeas,
@@ -8,6 +8,15 @@ import {
   getSettings,
   saveSettings,
 } from '../utils/storage';
+import {
+  initializeFirebase,
+  getFirebaseConfig,
+  signInAnonymouslyToFirebase,
+  onAuthChange,
+  firestoreIdeas,
+  firestoreTags,
+  isFirebaseConfigured,
+} from '../utils/firebase';
 
 const AppContext = createContext(null);
 
@@ -24,31 +33,95 @@ export const AppProvider = ({ children }) => {
   const [tags, setTags] = useState([]);
   const [settings, setSettingsState] = useState(getSettings());
   const [isLoading, setIsLoading] = useState(true);
+  const [firebaseUser, setFirebaseUser] = useState(null);
+  const [useFirebase, setUseFirebase] = useState(false);
+  const [firebaseStatus, setFirebaseStatus] = useState('unconfigured'); // 'unconfigured', 'connecting', 'connected', 'error'
 
-  // Load data on mount
+  const unsubscribeIdeasRef = useRef(null);
+  const unsubscribeTagsRef = useRef(null);
+
+  // Initialize Firebase if configured
   useEffect(() => {
-    setIdeas(getIdeas());
-    setTags(getTags());
-    setSettingsState(getSettings());
-    setIsLoading(false);
+    const config = getFirebaseConfig();
+    if (config && config.apiKey && config.projectId) {
+      setFirebaseStatus('connecting');
+      const result = initializeFirebase(config);
+      if (result) {
+        setUseFirebase(true);
+
+        // Listen to auth state
+        const unsubAuth = onAuthChange(async (user) => {
+          if (user) {
+            setFirebaseUser(user);
+            setFirebaseStatus('connected');
+          } else {
+            // Sign in anonymously
+            const newUser = await signInAnonymouslyToFirebase();
+            if (newUser) {
+              setFirebaseUser(newUser);
+              setFirebaseStatus('connected');
+            } else {
+              setFirebaseStatus('error');
+              setUseFirebase(false);
+            }
+          }
+        });
+
+        return () => unsubAuth();
+      } else {
+        setFirebaseStatus('error');
+      }
+    } else {
+      // No Firebase config, use localStorage
+      setIdeas(getIdeas());
+      setTags(getTags());
+      setIsLoading(false);
+    }
   }, []);
 
-  // Save ideas when changed
+  // Subscribe to Firestore data when user is authenticated
   useEffect(() => {
-    if (!isLoading) {
+    if (useFirebase && firebaseUser) {
+      // Subscribe to ideas
+      unsubscribeIdeasRef.current = firestoreIdeas.subscribe(
+        firebaseUser.uid,
+        (firestoreIdeas) => {
+          setIdeas(firestoreIdeas);
+          setIsLoading(false);
+        }
+      );
+
+      // Subscribe to tags
+      unsubscribeTagsRef.current = firestoreTags.subscribe(
+        firebaseUser.uid,
+        (firestoreTags) => {
+          setTags(firestoreTags);
+        }
+      );
+
+      return () => {
+        if (unsubscribeIdeasRef.current) unsubscribeIdeasRef.current();
+        if (unsubscribeTagsRef.current) unsubscribeTagsRef.current();
+      };
+    }
+  }, [useFirebase, firebaseUser]);
+
+  // Save ideas when changed (localStorage only)
+  useEffect(() => {
+    if (!isLoading && !useFirebase) {
       saveIdeas(ideas);
     }
-  }, [ideas, isLoading]);
+  }, [ideas, isLoading, useFirebase]);
 
-  // Save tags when changed
+  // Save tags when changed (localStorage only)
   useEffect(() => {
-    if (!isLoading) {
+    if (!isLoading && !useFirebase) {
       saveTags(tags);
     }
-  }, [tags, isLoading]);
+  }, [tags, isLoading, useFirebase]);
 
   // Add a new idea
-  const addIdea = useCallback((ideaData) => {
+  const addIdea = useCallback(async (ideaData) => {
     const newIdea = {
       id: uuidv4(),
       content: ideaData.content,
@@ -59,66 +132,107 @@ export const AppProvider = ({ children }) => {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    setIdeas(prev => [newIdea, ...prev]);
+
+    if (useFirebase && firebaseUser) {
+      await firestoreIdeas.add(firebaseUser.uid, newIdea);
+    } else {
+      setIdeas(prev => [newIdea, ...prev]);
+    }
+
     return newIdea;
-  }, []);
+  }, [useFirebase, firebaseUser]);
 
   // Update an idea
-  const updateIdea = useCallback((id, updates) => {
-    setIdeas(prev =>
-      prev.map(idea =>
-        idea.id === id
-          ? { ...idea, ...updates, updatedAt: new Date().toISOString() }
-          : idea
-      )
-    );
-  }, []);
+  const updateIdea = useCallback(async (id, updates) => {
+    const updatedData = { ...updates, updatedAt: new Date().toISOString() };
+
+    if (useFirebase && firebaseUser) {
+      await firestoreIdeas.update(firebaseUser.uid, id, updatedData);
+    } else {
+      setIdeas(prev =>
+        prev.map(idea =>
+          idea.id === id ? { ...idea, ...updatedData } : idea
+        )
+      );
+    }
+  }, [useFirebase, firebaseUser]);
 
   // Delete an idea
-  const deleteIdea = useCallback((id) => {
-    setIdeas(prev => prev.filter(idea => idea.id !== id));
-  }, []);
+  const deleteIdea = useCallback(async (id) => {
+    if (useFirebase && firebaseUser) {
+      await firestoreIdeas.delete(firebaseUser.uid, id);
+    } else {
+      setIdeas(prev => prev.filter(idea => idea.id !== id));
+    }
+  }, [useFirebase, firebaseUser]);
 
   // Toggle favorite
-  const toggleFavorite = useCallback((id) => {
-    setIdeas(prev =>
-      prev.map(idea =>
-        idea.id === id
-          ? { ...idea, isFavorite: !idea.isFavorite }
-          : idea
-      )
-    );
-  }, []);
+  const toggleFavorite = useCallback(async (id) => {
+    const idea = ideas.find(i => i.id === id);
+    if (!idea) return;
+
+    const updates = { isFavorite: !idea.isFavorite };
+
+    if (useFirebase && firebaseUser) {
+      await firestoreIdeas.update(firebaseUser.uid, id, updates);
+    } else {
+      setIdeas(prev =>
+        prev.map(i => i.id === id ? { ...i, ...updates } : i)
+      );
+    }
+  }, [ideas, useFirebase, firebaseUser]);
 
   // Add a new tag
-  const addTag = useCallback((tagName) => {
+  const addTag = useCallback(async (tagName) => {
     const normalized = tagName.trim();
     if (normalized && !tags.includes(normalized)) {
-      setTags(prev => [...prev, normalized]);
+      const newTags = [...tags, normalized];
+      if (useFirebase && firebaseUser) {
+        await firestoreTags.save(firebaseUser.uid, newTags);
+      } else {
+        setTags(newTags);
+      }
     }
-  }, [tags]);
+  }, [tags, useFirebase, firebaseUser]);
 
   // Add multiple tags
-  const addTags = useCallback((newTags) => {
-    const uniqueNewTags = newTags
+  const addTags = useCallback(async (newTagsList) => {
+    const uniqueNewTags = newTagsList
       .map(t => t.trim())
       .filter(t => t && !tags.includes(t));
     if (uniqueNewTags.length > 0) {
-      setTags(prev => [...prev, ...uniqueNewTags]);
+      const updatedTags = [...tags, ...uniqueNewTags];
+      if (useFirebase && firebaseUser) {
+        await firestoreTags.save(firebaseUser.uid, updatedTags);
+      } else {
+        setTags(updatedTags);
+      }
     }
-  }, [tags]);
+  }, [tags, useFirebase, firebaseUser]);
 
   // Delete a tag
-  const deleteTag = useCallback((tagName) => {
-    setTags(prev => prev.filter(t => t !== tagName));
-    // Also remove from all ideas
-    setIdeas(prev =>
-      prev.map(idea => ({
-        ...idea,
-        tags: idea.tags.filter(t => t !== tagName),
-      }))
-    );
-  }, []);
+  const deleteTag = useCallback(async (tagName) => {
+    const updatedTags = tags.filter(t => t !== tagName);
+
+    if (useFirebase && firebaseUser) {
+      await firestoreTags.save(firebaseUser.uid, updatedTags);
+      // Update all ideas that have this tag
+      const ideasWithTag = ideas.filter(idea => idea.tags.includes(tagName));
+      for (const idea of ideasWithTag) {
+        await firestoreIdeas.update(firebaseUser.uid, idea.id, {
+          tags: idea.tags.filter(t => t !== tagName),
+        });
+      }
+    } else {
+      setTags(updatedTags);
+      setIdeas(prev =>
+        prev.map(idea => ({
+          ...idea,
+          tags: idea.tags.filter(t => t !== tagName),
+        }))
+      );
+    }
+  }, [tags, ideas, useFirebase, firebaseUser]);
 
   // Update settings
   const updateSettings = useCallback((newSettings) => {
@@ -128,6 +242,70 @@ export const AppProvider = ({ children }) => {
       return updated;
     });
   }, []);
+
+  // Reconnect to Firebase (after config change)
+  const reconnectFirebase = useCallback(async () => {
+    // Unsubscribe from current subscriptions
+    if (unsubscribeIdeasRef.current) unsubscribeIdeasRef.current();
+    if (unsubscribeTagsRef.current) unsubscribeTagsRef.current();
+
+    setFirebaseStatus('connecting');
+    setIsLoading(true);
+
+    const config = getFirebaseConfig();
+    if (config && config.apiKey && config.projectId) {
+      const result = initializeFirebase(config);
+      if (result) {
+        setUseFirebase(true);
+        const user = await signInAnonymouslyToFirebase();
+        if (user) {
+          setFirebaseUser(user);
+          setFirebaseStatus('connected');
+        } else {
+          setFirebaseStatus('error');
+          setUseFirebase(false);
+          setIsLoading(false);
+        }
+      } else {
+        setFirebaseStatus('error');
+        setUseFirebase(false);
+        setIsLoading(false);
+      }
+    } else {
+      setUseFirebase(false);
+      setFirebaseStatus('unconfigured');
+      setIdeas(getIdeas());
+      setTags(getTags());
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Migrate localStorage data to Firebase
+  const migrateToFirebase = useCallback(async () => {
+    if (!useFirebase || !firebaseUser) return false;
+
+    try {
+      const localIdeas = getIdeas();
+      const localTags = getTags();
+
+      // Upload ideas
+      for (const idea of localIdeas) {
+        await firestoreIdeas.add(firebaseUser.uid, idea);
+      }
+
+      // Upload tags
+      if (localTags.length > 0) {
+        const existingTags = await firestoreTags.get(firebaseUser.uid);
+        const mergedTags = [...new Set([...existingTags, ...localTags])];
+        await firestoreTags.save(firebaseUser.uid, mergedTags);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Migration error:', error);
+      return false;
+    }
+  }, [useFirebase, firebaseUser]);
 
   const value = {
     ideas,
@@ -142,6 +320,12 @@ export const AppProvider = ({ children }) => {
     addTags,
     deleteTag,
     updateSettings,
+    // Firebase related
+    useFirebase,
+    firebaseStatus,
+    firebaseUser,
+    reconnectFirebase,
+    migrateToFirebase,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
