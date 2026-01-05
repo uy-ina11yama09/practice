@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>kintone ダッシュボード プレビュー</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #e8e8e8;
+      margin: 0;
+      padding: 20px;
+    }
+    .preview-notice {
+      background: #fff3cd;
+      border: 1px solid #ffc107;
+      border-radius: 4px;
+      padding: 10px 15px;
+      margin-bottom: 20px;
+      font-size: 13px;
+      color: #856404;
+    }
+    #kintone-custom-dashboard {
+      padding: 20px;
+      background: #f5f5f5;
+      margin-bottom: 20px;
+      border-radius: 8px;
+    }
+    #kintone-custom-dashboard h2 {
+      margin: 0 0 20px 0;
+      color: #333;
+      font-size: 18px;
+      border-bottom: 2px solid #3498db;
+      padding-bottom: 10px;
+    }
+    .charts-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+    .chart-wrapper {
+      flex: 1;
+      min-width: 400px;
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .chart-wrapper h3 {
+      margin: 0 0 15px 0;
+      font-size: 14px;
+      color: #666;
+    }
+    .update-time {
+      margin: 15px 0 0 0;
+      font-size: 11px;
+      color: #999;
+      text-align: right;
+    }
+  </style>
+</head>
+<body>
+  <div class="preview-notice">
+    これはローカルプレビュー用のページです。モックデータでダッシュボードの見た目を確認できます。
+  </div>
+
+  <div id="kintone-custom-dashboard">
+    <h2>📊 顧客データ ダッシュボード</h2>
+
+    <div class="charts-container">
+      <div class="chart-wrapper">
+        <h3>週別 顧客数推移（顧客ステージ別）</h3>
+        <canvas id="chart-by-stage"></canvas>
+      </div>
+
+      <div class="chart-wrapper">
+        <h3>週別 顧客数推移（障害属性別）</h3>
+        <canvas id="chart-by-disability"></canvas>
+      </div>
+    </div>
+
+    <p class="update-time">
+      最終更新: <span id="dashboard-update-time"></span>
+    </p>
+  </div>
+
+  <script>
+    // ===========================================
+    // モックデータ生成
+    // ===========================================
+
+    const STAGES = ['リード', '商談中', '提案済み', '成約', '失注'];
+    const DISABILITIES = ['視覚障害', '聴覚障害', '肢体不自由', '知的障害', '精神障害', '発達障害'];
+
+    // 過去12週分のモックデータを生成
+    function generateMockRecords() {
+      const records = [];
+      const today = new Date();
+
+      for (let i = 0; i < 150; i++) {
+        // ランダムな日付（過去12週以内）
+        const daysAgo = Math.floor(Math.random() * 84);
+        const date = new Date(today);
+        date.setDate(date.getDate() - daysAgo);
+
+        records.push({
+          '名前': { value: `顧客${i + 1}` },
+          '顧客ステージ': { value: STAGES[Math.floor(Math.random() * STAGES.length)] },
+          '案件化日': { value: date.toISOString().split('T')[0] },
+          '障害属性': { value: DISABILITIES[Math.floor(Math.random() * DISABILITIES.length)] }
+        });
+      }
+
+      return records;
+    }
+
+    // ===========================================
+    // 共通ロジック（dashboard.jsと同じ）
+    // ===========================================
+
+    const COLORS = [
+      'rgba(54, 162, 235, 0.8)',
+      'rgba(255, 99, 132, 0.8)',
+      'rgba(75, 192, 192, 0.8)',
+      'rgba(255, 206, 86, 0.8)',
+      'rgba(153, 102, 255, 0.8)',
+      'rgba(255, 159, 64, 0.8)',
+      'rgba(199, 199, 199, 0.8)',
+      'rgba(83, 102, 255, 0.8)',
+      'rgba(255, 99, 255, 0.8)',
+      'rgba(99, 255, 132, 0.8)'
+    ];
+
+    const FIELD_CODES = {
+      name: '名前',
+      stage: '顧客ステージ',
+      date: '案件化日',
+      disability: '障害属性'
+    };
+
+    function getWeekStart(date) {
+      const d = new Date(date);
+      const day = d.getDay();
+      const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+      d.setDate(diff);
+      d.setHours(0, 0, 0, 0);
+      return d;
+    }
+
+    function formatWeekLabel(date) {
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const day = date.getDate().toString().padStart(2, '0');
+      return `${month}/${day}`;
+    }
+
+    function generateWeeksList(weeksCount) {
+      const weeks = [];
+      const today = new Date();
+      const currentWeekStart = getWeekStart(today);
+
+      for (let i = weeksCount - 1; i >= 0; i--) {
+        const weekStart = new Date(currentWeekStart);
+        weekStart.setDate(weekStart.getDate() - (i * 7));
+        weeks.push(weekStart);
+      }
+      return weeks;
+    }
+
+    function aggregateData(records, categoryField, weeks) {
+      const weekStrings = weeks.map(w => w.toISOString().split('T')[0]);
+      const categories = new Set();
+      const data = {};
+
+      weekStrings.forEach(week => {
+        data[week] = {};
+      });
+
+      records.forEach(record => {
+        const dateValue = record[FIELD_CODES.date]?.value;
+        const categoryValue = record[categoryField]?.value || '未設定';
+
+        if (!dateValue) return;
+
+        const recordDate = new Date(dateValue);
+        const weekStart = getWeekStart(recordDate);
+        const weekKey = weekStart.toISOString().split('T')[0];
+
+        if (weekStrings.includes(weekKey)) {
+          categories.add(categoryValue);
+          if (!data[weekKey][categoryValue]) {
+            data[weekKey][categoryValue] = 0;
+          }
+          data[weekKey][categoryValue]++;
+        }
+      });
+
+      return {
+        categories: Array.from(categories).sort(),
+        data: data,
+        weekStrings: weekStrings
+      };
+    }
+
+    function createChartDatasets(aggregatedData, weeks) {
+      const { categories, data, weekStrings } = aggregatedData;
+      const labels = weeks.map(w => formatWeekLabel(w));
+
+      const datasets = categories.map((category, index) => ({
+        label: category,
+        data: weekStrings.map(week => data[week][category] || 0),
+        backgroundColor: COLORS[index % COLORS.length],
+        borderColor: COLORS[index % COLORS.length].replace('0.8', '1'),
+        borderWidth: 1
+      }));
+
+      return { labels, datasets };
+    }
+
+    function renderChart(canvasId, chartData) {
+      const ctx = document.getElementById(canvasId).getContext('2d');
+
+      new Chart(ctx, {
+        type: 'bar',
+        data: chartData,
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                boxWidth: 12,
+                padding: 15,
+                font: { size: 11 }
+              }
+            },
+            tooltip: {
+              mode: 'index',
+              intersect: false
+            }
+          },
+          scales: {
+            x: {
+              stacked: true,
+              title: {
+                display: true,
+                text: '週（開始日）',
+                font: { size: 11 }
+              }
+            },
+            y: {
+              stacked: true,
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: '顧客数',
+                font: { size: 11 }
+              },
+              ticks: {
+                stepSize: 1
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // ===========================================
+    // 初期化
+    // ===========================================
+
+    document.getElementById('dashboard-update-time').textContent =
+      new Date().toLocaleString('ja-JP');
+
+    const records = generateMockRecords();
+    const weeks = generateWeeksList(12);
+
+    // 顧客ステージ別グラフ
+    const stageData = aggregateData(records, FIELD_CODES.stage, weeks);
+    const stageChartData = createChartDatasets(stageData, weeks);
+    renderChart('chart-by-stage', stageChartData);
+
+    // 障害属性別グラフ
+    const disabilityData = aggregateData(records, FIELD_CODES.disability, weeks);
+    const disabilityChartData = createChartDatasets(disabilityData, weeks);
+    renderChart('chart-by-disability', disabilityChartData);
+  </script>
+</body>
+</html>
