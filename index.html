@@ -314,6 +314,96 @@
       font-size: 12px;
       margin-bottom: 12px;
     }
+
+    /* 編集モード */
+    .todo-item.editing {
+      cursor: default;
+    }
+
+    .todo-item.editing .drag-handle,
+    .todo-item.editing .todo-checkbox {
+      visibility: hidden;
+    }
+
+    .edit-form {
+      flex: 1;
+    }
+
+    .edit-input,
+    .edit-textarea {
+      width: 100%;
+      padding: 8px 10px;
+      border: 2px solid #4a90d9;
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: inherit;
+    }
+
+    .edit-input {
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .edit-textarea {
+      resize: vertical;
+      min-height: 60px;
+    }
+
+    .edit-buttons {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .edit-save,
+    .edit-cancel {
+      flex: 1;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .edit-save {
+      background: #4a90d9;
+      color: #fff;
+    }
+
+    .edit-save:hover {
+      background: #3a7bc8;
+    }
+
+    .edit-cancel {
+      background: #e0e0e0;
+      color: #333;
+    }
+
+    .edit-cancel:hover {
+      background: #d0d0d0;
+    }
+
+    /* ボタングループ */
+    .todo-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .todo-edit {
+      padding: 6px 12px;
+      border: none;
+      background: #888;
+      color: #fff;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .todo-edit:hover {
+      background: #666;
+    }
   </style>
 </head>
 <body>
@@ -359,6 +449,7 @@
     let todos = [];
     let currentFilter = 'all';
     let draggedId = null;
+    let editingId = null;
 
     // DOM要素
     const addForm = document.getElementById('addForm');
@@ -446,6 +537,51 @@
     function deleteTodo(id) {
       todos = todos.filter(t => t.id !== id);
       saveTodos();
+      render();
+    }
+
+    // 編集モード開始
+    function startEdit(id) {
+      editingId = id;
+      render();
+      // フォーカスを当てる
+      const input = document.querySelector('.edit-input');
+      if (input) {
+        input.focus();
+        input.select();
+      }
+    }
+
+    // 編集をキャンセル
+    function cancelEdit() {
+      editingId = null;
+      render();
+    }
+
+    // 編集を保存
+    function saveEdit(id) {
+      const titleInput = document.querySelector('.edit-input');
+      const detailInput = document.querySelector('.edit-textarea');
+
+      if (!titleInput) return;
+
+      const newTitle = titleInput.value.trim();
+      const newDetail = detailInput ? detailInput.value.trim() : '';
+
+      if (!newTitle) {
+        alert('タイトルを入力してください');
+        titleInput.focus();
+        return;
+      }
+
+      const todo = todos.find(t => t.id === id);
+      if (todo) {
+        todo.title = newTitle;
+        todo.detail = newDetail;
+        saveTodos();
+      }
+
+      editingId = null;
       render();
     }
 
@@ -587,13 +723,78 @@
         });
       });
 
+      // 編集ボタン
+      todoList.querySelectorAll('.todo-edit').forEach(btn => {
+        btn.addEventListener('click', () => {
+          startEdit(parseInt(btn.dataset.id));
+        });
+      });
+
+      // 編集保存ボタン
+      todoList.querySelectorAll('.edit-save').forEach(btn => {
+        btn.addEventListener('click', () => {
+          saveEdit(parseInt(btn.dataset.id));
+        });
+      });
+
+      // 編集キャンセルボタン
+      todoList.querySelectorAll('.edit-cancel').forEach(btn => {
+        btn.addEventListener('click', () => {
+          cancelEdit();
+        });
+      });
+
+      // 編集フォームでEnterキーで保存
+      const editInput = todoList.querySelector('.edit-input');
+      if (editInput) {
+        editInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            saveEdit(editingId);
+          } else if (e.key === 'Escape') {
+            cancelEdit();
+          }
+        });
+      }
+
+      const editTextarea = todoList.querySelector('.edit-textarea');
+      if (editTextarea) {
+        editTextarea.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') {
+            cancelEdit();
+          }
+        });
+      }
+
       // ドラッグ&ドロップ設定
       setupDragAndDrop();
     }
 
     // TodoのHTML生成
     function createTodoHTML(todo) {
+      const isEditing = editingId === todo.id;
       const completedClass = todo.completed ? 'completed' : '';
+      const editingClass = isEditing ? 'editing' : '';
+
+      if (isEditing) {
+        return `
+          <li class="todo-item ${editingClass}" data-id="${todo.id}">
+            <div class="todo-header">
+              <span class="drag-handle">⋮⋮</span>
+              <div class="todo-checkbox" data-id="${todo.id}"></div>
+              <div class="edit-form">
+                <input type="text" class="edit-input" value="${escapeHTML(todo.title)}" placeholder="タイトル">
+                <textarea class="edit-textarea" placeholder="詳細（任意）">${escapeHTML(todo.detail)}</textarea>
+                <div class="edit-buttons">
+                  <button class="edit-save" data-id="${todo.id}">保存</button>
+                  <button class="edit-cancel">キャンセル</button>
+                </div>
+              </div>
+            </div>
+          </li>
+        `;
+      }
+
       const detailHTML = todo.detail
         ? `<div class="todo-detail">${escapeHTML(todo.detail)}</div>`
         : '';
@@ -610,7 +811,10 @@
           </div>
           <div class="todo-meta">
             <span class="todo-date">${formatDate(todo.createdAt)}</span>
-            <button class="todo-delete" data-id="${todo.id}">削除</button>
+            <div class="todo-actions">
+              <button class="todo-edit" data-id="${todo.id}">編集</button>
+              <button class="todo-delete" data-id="${todo.id}">削除</button>
+            </div>
           </div>
         </li>
       `;
