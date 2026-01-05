@@ -290,7 +290,7 @@
         return;
       }
 
-      portal.insertAdjacentHTML('afterbegin', createDashboardHTML());
+      portal.insertAdjacentHTML('beforeend', createDashboardHTML());
 
       // 更新時刻を表示
       document.getElementById('dashboard-update-time').textContent =
