@@ -444,6 +444,79 @@
     .todo-edit:hover {
       background: #666;
     }
+
+    /* 優先度タグ */
+    .priority-tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+
+    .priority-high {
+      background: #ffebee;
+      color: #c62828;
+    }
+
+    .priority-medium {
+      background: #fff3e0;
+      color: #ef6c00;
+    }
+
+    .priority-low {
+      background: #e3f2fd;
+      color: #1565c0;
+    }
+
+    /* 優先度選択 */
+    .priority-select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      background: #fff;
+      transition: border-color 0.2s;
+    }
+
+    .priority-select:focus {
+      outline: none;
+      border-color: #4a90d9;
+    }
+
+    /* 並び替えオプション */
+    .sort-options {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      font-size: 13px;
+      color: #666;
+    }
+
+    .sort-options label {
+      white-space: nowrap;
+    }
+
+    .sort-select {
+      flex: 1;
+      padding: 6px 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      background: #fff;
+    }
+
+    .sort-select:focus {
+      outline: none;
+      border-color: #4a90d9;
+    }
   </style>
 </head>
 <body>
@@ -456,6 +529,12 @@
         <form class="add-form" id="addForm">
           <input type="text" id="titleInput" placeholder="タイトルを入力..." required>
           <textarea id="detailInput" placeholder="詳細を入力（任意）..."></textarea>
+          <select id="priorityInput" class="priority-select">
+            <option value="none">優先度: なし</option>
+            <option value="high">優先度: 高</option>
+            <option value="medium">優先度: 中</option>
+            <option value="low">優先度: 低</option>
+          </select>
           <button type="submit">追加する</button>
         </form>
       </div>
@@ -472,8 +551,18 @@
         <!-- カウンター -->
         <div class="counter" id="counter"></div>
 
+        <!-- 並び替えオプション -->
+        <div class="sort-options">
+          <label>並び替え:</label>
+          <select id="sortSelect" class="sort-select">
+            <option value="manual">手動（ドラッグ）</option>
+            <option value="priority">優先度順</option>
+            <option value="created">作成日順</option>
+          </select>
+        </div>
+
         <!-- ドラッグヒント -->
-        <div class="drag-hint">ドラッグで並び替えできます</div>
+        <div class="drag-hint" id="dragHint">ドラッグで並び替えできます</div>
 
         <!-- Todoリスト -->
         <ul class="todo-list" id="todoList"></ul>
@@ -488,16 +577,24 @@
     // 状態管理
     let todos = [];
     let currentFilter = 'all';
+    let currentSort = 'manual';
     let draggedId = null;
     let editingId = null;
+
+    // 優先度の順序（ソート用）
+    const priorityOrder = { high: 0, medium: 1, low: 2, none: 3 };
+    const priorityLabels = { high: '高', medium: '中', low: '低', none: '' };
 
     // DOM要素
     const addForm = document.getElementById('addForm');
     const titleInput = document.getElementById('titleInput');
     const detailInput = document.getElementById('detailInput');
+    const priorityInput = document.getElementById('priorityInput');
     const todoList = document.getElementById('todoList');
     const counter = document.getElementById('counter');
     const filterBtns = document.querySelectorAll('.filter-btn');
+    const sortSelect = document.getElementById('sortSelect');
+    const dragHint = document.getElementById('dragHint');
 
     // 初期化
     function init() {
@@ -536,12 +633,21 @@
           render();
         });
       });
+
+      // 並び替え選択
+      sortSelect.addEventListener('change', () => {
+        currentSort = sortSelect.value;
+        // 手動以外はドラッグヒントを非表示
+        dragHint.style.display = currentSort === 'manual' ? 'block' : 'none';
+        render();
+      });
     }
 
     // Todo追加
     function addTodo() {
       const title = titleInput.value.trim();
       const detail = detailInput.value.trim();
+      const priority = priorityInput.value;
 
       if (!title) return;
 
@@ -549,6 +655,7 @@
         id: Date.now(),
         title,
         detail,
+        priority,
         completed: false,
         createdAt: new Date().toISOString()
       };
@@ -560,6 +667,7 @@
       // フォームリセット
       titleInput.value = '';
       detailInput.value = '';
+      priorityInput.value = 'none';
       titleInput.focus();
     }
 
@@ -602,11 +710,13 @@
     function saveEdit(id) {
       const titleInput = document.querySelector('.edit-input');
       const detailInput = document.querySelector('.edit-textarea');
+      const prioritySelect = document.querySelector('.edit-priority');
 
       if (!titleInput) return;
 
       const newTitle = titleInput.value.trim();
       const newDetail = detailInput ? detailInput.value.trim() : '';
+      const newPriority = prioritySelect ? prioritySelect.value : 'none';
 
       if (!newTitle) {
         alert('タイトルを入力してください');
@@ -618,6 +728,7 @@
       if (todo) {
         todo.title = newTitle;
         todo.detail = newDetail;
+        todo.priority = newPriority;
         saveTodos();
       }
 
@@ -645,9 +756,25 @@
         filtered = filtered.filter(t => t.completed);
       }
 
-      // 未完了を上、完了を下に並べる（ただしドラッグ順は維持）
-      const active = filtered.filter(t => !t.completed);
-      const completed = filtered.filter(t => t.completed);
+      // 未完了を上、完了を下に並べる
+      let active = filtered.filter(t => !t.completed);
+      let completed = filtered.filter(t => t.completed);
+
+      // ソート適用
+      if (currentSort === 'priority') {
+        const sortByPriority = (a, b) => {
+          const pa = priorityOrder[a.priority || 'none'];
+          const pb = priorityOrder[b.priority || 'none'];
+          return pa - pb;
+        };
+        active = active.sort(sortByPriority);
+        completed = completed.sort(sortByPriority);
+      } else if (currentSort === 'created') {
+        const sortByCreated = (a, b) => new Date(b.createdAt) - new Date(a.createdAt);
+        active = active.sort(sortByCreated);
+        completed = completed.sort(sortByCreated);
+      }
+      // manual の場合はそのまま（ドラッグ順）
 
       return { active, completed, all: [...active, ...completed] };
     }
@@ -664,6 +791,9 @@
     };
 
     function setupDragAndDrop() {
+      // 手動ソート以外はドラッグ無効
+      if (currentSort !== 'manual') return;
+
       const items = todoList.querySelectorAll('.todo-item:not(.editing)');
 
       items.forEach(item => {
@@ -973,6 +1103,7 @@
       const isEditing = editingId === todo.id;
       const completedClass = todo.completed ? 'completed' : '';
       const editingClass = isEditing ? 'editing' : '';
+      const priority = todo.priority || 'none';
 
       if (isEditing) {
         return `
@@ -982,7 +1113,13 @@
               <div class="todo-checkbox" data-id="${todo.id}"></div>
               <div class="edit-form">
                 <input type="text" class="edit-input" value="${escapeHTML(todo.title)}" placeholder="タイトル">
-                <textarea class="edit-textarea" placeholder="詳細（任意）">${escapeHTML(todo.detail)}</textarea>
+                <textarea class="edit-textarea" placeholder="詳細（任意）">${escapeHTML(todo.detail || '')}</textarea>
+                <select class="edit-priority priority-select">
+                  <option value="none" ${priority === 'none' ? 'selected' : ''}>優先度: なし</option>
+                  <option value="high" ${priority === 'high' ? 'selected' : ''}>優先度: 高</option>
+                  <option value="medium" ${priority === 'medium' ? 'selected' : ''}>優先度: 中</option>
+                  <option value="low" ${priority === 'low' ? 'selected' : ''}>優先度: 低</option>
+                </select>
                 <div class="edit-buttons">
                   <button class="edit-save" data-id="${todo.id}">保存</button>
                   <button class="edit-cancel">キャンセル</button>
@@ -997,13 +1134,17 @@
         ? `<div class="todo-detail">${escapeHTML(todo.detail)}</div>`
         : '';
 
+      const priorityTagHTML = priority !== 'none'
+        ? `<span class="priority-tag priority-${priority}">${priorityLabels[priority]}</span>`
+        : '';
+
       return `
         <li class="todo-item ${completedClass}" data-id="${todo.id}">
           <div class="todo-header">
             <span class="drag-handle">⋮⋮</span>
             <div class="todo-checkbox" data-id="${todo.id}"></div>
             <div class="todo-content">
-              <div class="todo-title">${escapeHTML(todo.title)}</div>
+              <div class="todo-title">${escapeHTML(todo.title)}${priorityTagHTML}</div>
               ${detailHTML}
             </div>
           </div>
