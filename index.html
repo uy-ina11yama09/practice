@@ -239,15 +239,7 @@
     }
 
     .drag-handle {
-      color: #ccc;
-      cursor: grab;
-      font-size: 18px;
-      padding: 2px;
-      flex-shrink: 0;
-    }
-
-    .drag-handle:hover {
-      color: #999;
+      display: none;
     }
 
     .todo-checkbox {
@@ -302,6 +294,30 @@
       margin-top: 8px;
       white-space: pre-wrap;
       word-break: break-word;
+    }
+
+    /* 折りたたみ詳細 */
+    .todo-detail.collapsed {
+      display: -webkit-box;
+      -webkit-line-clamp: 1;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .detail-toggle {
+      background: none;
+      border: none;
+      color: #4a90d9;
+      font-size: 12px;
+      cursor: pointer;
+      padding: 4px 0;
+      margin-top: 4px;
+    }
+
+    .detail-toggle:hover {
+      text-decoration: underline;
     }
 
     .todo-meta {
@@ -580,6 +596,7 @@
     let currentSort = 'manual';
     let draggedId = null;
     let editingId = null;
+    let expandedIds = new Set(); // 詳細が展開されているTodoのID
 
     // 優先度の順序（ソート用）
     const priorityOrder = { high: 0, medium: 1, low: 2, none: 3 };
@@ -797,12 +814,20 @@
       const items = todoList.querySelectorAll('.todo-item:not(.editing)');
 
       items.forEach(item => {
-        // ドラッグハンドルでのみドラッグ開始
-        const handle = item.querySelector('.drag-handle');
-        if (!handle) return;
-
-        handle.addEventListener('mousedown', (e) => startDrag(e, item));
-        handle.addEventListener('touchstart', (e) => startDrag(e, item), { passive: false });
+        // カード全体でドラッグ開始
+        item.addEventListener('mousedown', (e) => {
+          // ボタンやチェックボックスの場合はドラッグしない
+          if (e.target.closest('button, .todo-checkbox, .detail-toggle, input, textarea, select')) {
+            return;
+          }
+          startDrag(e, item);
+        });
+        item.addEventListener('touchstart', (e) => {
+          if (e.target.closest('button, .todo-checkbox, .detail-toggle, input, textarea, select')) {
+            return;
+          }
+          startDrag(e, item);
+        }, { passive: false });
       });
     }
 
@@ -1094,6 +1119,19 @@
         });
       }
 
+      // 詳細の展開/折りたたみ
+      todoList.querySelectorAll('.detail-toggle').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = parseInt(btn.dataset.id);
+          if (expandedIds.has(id)) {
+            expandedIds.delete(id);
+          } else {
+            expandedIds.add(id);
+          }
+          render();
+        });
+      });
+
       // ドラッグ&ドロップ設定
       setupDragAndDrop();
     }
@@ -1109,7 +1147,6 @@
         return `
           <li class="todo-item ${editingClass}" data-id="${todo.id}">
             <div class="todo-header">
-              <span class="drag-handle">⋮⋮</span>
               <div class="todo-checkbox" data-id="${todo.id}"></div>
               <div class="edit-form">
                 <input type="text" class="edit-input" value="${escapeHTML(todo.title)}" placeholder="タイトル">
@@ -1130,9 +1167,17 @@
         `;
       }
 
-      const detailHTML = todo.detail
-        ? `<div class="todo-detail">${escapeHTML(todo.detail)}</div>`
-        : '';
+      const isExpanded = expandedIds.has(todo.id);
+      const needsCollapse = todo.detail && todo.detail.includes('\n');
+      const collapsedClass = (needsCollapse && !isExpanded) ? 'collapsed' : '';
+
+      let detailHTML = '';
+      if (todo.detail) {
+        detailHTML = `<div class="todo-detail ${collapsedClass}">${escapeHTML(todo.detail)}</div>`;
+        if (needsCollapse) {
+          detailHTML += `<button class="detail-toggle" data-id="${todo.id}">${isExpanded ? '▲ 折りたたむ' : '▼ もっと見る'}</button>`;
+        }
+      }
 
       const priorityTagHTML = priority !== 'none'
         ? `<span class="priority-tag priority-${priority}">${priorityLabels[priority]}</span>`
@@ -1141,7 +1186,6 @@
       return `
         <li class="todo-item ${completedClass}" data-id="${todo.id}">
           <div class="todo-header">
-            <span class="drag-handle">⋮⋮</span>
             <div class="todo-checkbox" data-id="${todo.id}"></div>
             <div class="todo-content">
               <div class="todo-title">${escapeHTML(todo.title)}${priorityTagHTML}</div>
