@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Volume Analyzer - 検索ボリューム分析ツール</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans JP', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .card-shadow { box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1); }
+        .loading-spinner { border: 3px solid #f3f3f3; border-top: 3px solid #667eea; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .keyword-tag { transition: all 0.2s ease; }
+        .keyword-tag:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4); }
+        .site-card { transition: all 0.3s ease; }
+        .site-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15); }
+        .fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .pulse { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="gradient-bg text-white py-6 shadow-lg">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold">Search Volume Analyzer</h1>
+                    <p class="text-purple-200 mt-1">AIパワードの検索キーワード分析ツール</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="bg-white/20 px-4 py-2 rounded-full text-sm">
+                        <span class="inline-block w-2 h-2 bg-green-400 rounded-full mr-2 pulse"></span>
+                        AI分析エンジン稼働中
+                    </span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Search Input Section -->
+        <section class="bg-white rounded-2xl card-shadow p-8 mb-8">
+            <div class="max-w-3xl mx-auto">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">キーワードを入力して分析開始</h2>
+                <div class="flex gap-4">
+                    <div class="flex-1 relative">
+                        <input type="text" id="keywordInput" placeholder="分析したいキーワードを入力（例: プログラミング 学習）" class="w-full px-6 py-4 text-lg border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none transition-colors">
+                        <div id="suggestions" class="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-xl mt-2 hidden z-10 shadow-lg"></div>
+                    </div>
+                    <button id="analyzeBtn" class="gradient-bg text-white px-8 py-4 rounded-xl font-semibold hover:opacity-90 transition-opacity flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                        分析開始
+                    </button>
+                </div>
+                <div class="mt-4 flex flex-wrap gap-2" id="recentSearches"><span class="text-sm text-gray-400">最近の検索履歴はありません</span></div>
+            </div>
+        </section>
+
+        <!-- Results Section -->
+        <div id="resultsSection" class="hidden">
+            <!-- Volume Overview -->
+            <section class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 fade-in">
+                <div class="bg-white rounded-xl card-shadow p-6">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-gray-500 text-sm">月間検索ボリューム</span>
+                        <span class="bg-green-100 text-green-600 text-xs px-2 py-1 rounded-full">+12%</span>
+                    </div>
+                    <p class="text-3xl font-bold text-gray-800" id="monthlyVolume">--</p>
+                    <p class="text-xs text-gray-400 mt-1">過去30日間</p>
+                </div>
+                <div class="bg-white rounded-xl card-shadow p-6">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-gray-500 text-sm">競合度</span>
+                        <span class="bg-yellow-100 text-yellow-600 text-xs px-2 py-1 rounded-full" id="competitionBadge">中</span>
+                    </div>
+                    <p class="text-3xl font-bold text-gray-800" id="competition">--</p>
+                    <p class="text-xs text-gray-400 mt-1">100点満点</p>
+                </div>
+                <div class="bg-white rounded-xl card-shadow p-6">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-gray-500 text-sm">CPC（広告単価）</span>
+                        <span class="bg-blue-100 text-blue-600 text-xs px-2 py-1 rounded-full">参考値</span>
+                    </div>
+                    <p class="text-3xl font-bold text-gray-800" id="cpc">--</p>
+                    <p class="text-xs text-gray-400 mt-1">1クリックあたり</p>
+                </div>
+                <div class="bg-white rounded-xl card-shadow p-6">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-gray-500 text-sm">SEO難易度</span>
+                        <span class="bg-purple-100 text-purple-600 text-xs px-2 py-1 rounded-full" id="seoBadge">普通</span>
+                    </div>
+                    <p class="text-3xl font-bold text-gray-800" id="seoDifficulty">--</p>
+                    <p class="text-xs text-gray-400 mt-1">100点満点</p>
+                </div>
+            </section>
+
+            <!-- Main Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Left Column -->
+                <div class="lg:col-span-2 space-y-8">
+                    <!-- Trend Chart -->
+                    <section class="bg-white rounded-xl card-shadow p-6 fade-in">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-xl font-bold text-gray-800">検索ボリュームトレンド</h3>
+                            <div class="flex gap-2">
+                                <button class="trend-period px-4 py-2 rounded-lg text-sm font-medium bg-purple-100 text-purple-600" data-period="12">12ヶ月</button>
+                                <button class="trend-period px-4 py-2 rounded-lg text-sm font-medium text-gray-500 hover:bg-gray-100" data-period="6">6ヶ月</button>
+                                <button class="trend-period px-4 py-2 rounded-lg text-sm font-medium text-gray-500 hover:bg-gray-100" data-period="3">3ヶ月</button>
+                            </div>
+                        </div>
+                        <div class="h-64"><canvas id="trendChart"></canvas></div>
+                    </section>
+
+                    <!-- Top Ranking Sites -->
+                    <section class="bg-white rounded-xl card-shadow p-6 fade-in">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-xl font-bold text-gray-800">検索上位サイト</h3>
+                            <div class="flex gap-2">
+                                <button class="sort-btn px-4 py-2 rounded-lg text-sm font-medium bg-purple-100 text-purple-600" data-sort="rank">検索順位順</button>
+                                <button class="sort-btn px-4 py-2 rounded-lg text-sm font-medium text-gray-500 hover:bg-gray-100" data-sort="traffic">推定流入順</button>
+                            </div>
+                        </div>
+                        <div id="topSites" class="space-y-4"></div>
+                    </section>
+                </div>
+
+                <!-- Right Column -->
+                <div class="space-y-8">
+                    <!-- Search Persona -->
+                    <section class="bg-white rounded-xl card-shadow p-6 fade-in">
+                        <h3 class="text-xl font-bold text-gray-800 mb-4">検索者ペルソナ</h3>
+                        <div id="personaSection"></div>
+                    </section>
+
+                    <!-- Related Keywords -->
+                    <section class="bg-white rounded-xl card-shadow p-6 fade-in">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-xl font-bold text-gray-800">関連キーワード</h3>
+                            <span class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-3 py-1 rounded-full">AI提案</span>
+                        </div>
+                        <div id="relatedKeywords" class="flex flex-wrap gap-2"></div>
+                    </section>
+
+                    <!-- Search Intent -->
+                    <section class="bg-white rounded-xl card-shadow p-6 fade-in">
+                        <h3 class="text-xl font-bold text-gray-800 mb-4">検索意図の分析</h3>
+                        <div id="searchIntent"></div>
+                    </section>
+
+                    <!-- Seasonal Trends -->
+                    <section class="bg-white rounded-xl card-shadow p-6 fade-in">
+                        <h3 class="text-xl font-bold text-gray-800 mb-4">季節性トレンド</h3>
+                        <div class="h-40"><canvas id="seasonalChart"></canvas></div>
+                    </section>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEO Analysis Modal -->
+        <div id="seoModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+                <div class="p-6 border-b border-gray-100">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-xl font-bold text-gray-800">SEO分析レポート</h3>
+                        <button id="closeModal" class="text-gray-400 hover:text-gray-600">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                    </div>
+                </div>
+                <div id="seoAnalysisContent" class="p-6"></div>
+            </div>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div id="loadingOverlay" class="fixed inset-0 bg-white/80 flex items-center justify-center z-40 hidden">
+            <div class="text-center">
+                <div class="loading-spinner mx-auto mb-4"></div>
+                <p class="text-gray-600 font-medium">AIが分析中...</p>
+                <p class="text-gray-400 text-sm mt-1" id="loadingMessage">キーワードデータを収集しています</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-gray-400 py-8 mt-16">
+        <div class="container mx-auto px-4 text-center">
+            <p class="text-sm">Search Volume Analyzer - AI搭載の高度なSEO分析ツール</p>
+            <p class="text-xs mt-2">データは参考値です。実際の検索ボリュームとは異なる場合があります。</p>
+        </div>
+    </footer>
+
+    <script>
+    // ========== SearchData Module ==========
+    const SearchData = {
+        categoryPatterns: {
+            programming: ['プログラミング', 'python', 'javascript', 'コード', '開発', 'エンジニア', 'web開発'],
+            marketing: ['マーケティング', 'seo', '広告', 'sns', 'コンテンツ', 'ブランディング'],
+            business: ['ビジネス', '起業', '副業', '投資', '転職', 'キャリア'],
+            health: ['健康', 'ダイエット', '筋トレ', '美容', 'スキンケア', '食事', 'オムツ', 'おむつ'],
+            education: ['学習', '勉強', '資格', '英語', 'スキル', 'オンライン'],
+            technology: ['ai', '人工知能', 'chatgpt', 'tech', 'デジタル', 'iot'],
+            lifestyle: ['旅行', 'グルメ', 'ファッション', '趣味', 'インテリア']
+        },
+        volumeRanges: {
+            programming: { min: 50000, max: 500000 },
+            marketing: { min: 30000, max: 300000 },
+            business: { min: 80000, max: 600000 },
+            health: { min: 100000, max: 800000 },
+            education: { min: 60000, max: 400000 },
+            technology: { min: 150000, max: 1000000 },
+            lifestyle: { min: 70000, max: 500000 },
+            default: { min: 20000, max: 200000 }
+        },
+        detectCategory(keyword) {
+            const lowerKeyword = keyword.toLowerCase();
+            for (const [category, patterns] of Object.entries(this.categoryPatterns)) {
+                if (patterns.some(pattern => lowerKeyword.includes(pattern))) return category;
+            }
+            return 'default';
+        },
+        hashCode(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = ((hash << 5) - hash) + str.charCodeAt(i);
+                hash = hash & hash;
+            }
+            return Math.abs(hash);
+        },
+        seededRandom(seed) {
+            const x = Math.sin(seed++) * 10000;
+            return x - Math.floor(x);
+        },
+        generateMonthlyVolume(keyword) {
+            const category = this.detectCategory(keyword);
+            const range = this.volumeRanges[category];
+            const hash = this.hashCode(keyword);
+            const volume = Math.floor(range.min + (range.max - range.min) * this.seededRandom(hash));
+            return Math.round(volume / 1000) * 1000;
+        },
+        generateCompetition(keyword) { return Math.floor(this.seededRandom(this.hashCode(keyword + 'c')) * 100); },
+        generateCPC(keyword) { return Math.round(50 + this.seededRandom(this.hashCode(keyword + 'p')) * 450); },
+        generateSEODifficulty(keyword) { return Math.floor(this.seededRandom(this.hashCode(keyword + 's')) * 100); },
+        generateTrendData(keyword, months = 12) {
+            const baseVolume = this.generateMonthlyVolume(keyword);
+            const hash = this.hashCode(keyword);
+            const data = [], labels = [];
+            const now = new Date();
+            for (let i = months - 1; i >= 0; i--) {
+                const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                labels.push(`${date.getFullYear()}/${date.getMonth() + 1}`);
+                const seasonalFactor = 1 + 0.2 * Math.sin((date.getMonth() / 12) * Math.PI * 2);
+                const randomFactor = 0.8 + this.seededRandom(hash + i) * 0.4;
+                data.push(Math.floor(baseVolume * seasonalFactor * randomFactor));
+            }
+            return { labels, data };
+        },
+        generateSeasonalData(keyword) {
+            const hash = this.hashCode(keyword);
+            const months = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+            const data = months.map((_, i) => Math.floor(50 + this.seededRandom(hash + i) * 50 + 20 * Math.sin((i / 12) * Math.PI * 2)));
+            return { labels: months, data };
+        },
+        generateRelatedKeywords(keyword) {
+            const category = this.detectCategory(keyword);
+            const relatedTerms = {
+                programming: ['入門', '独学', 'スクール', 'おすすめ', '初心者', '学習方法', '無料', '資格'],
+                marketing: ['戦略', '成功事例', 'ツール', '基礎', '最新トレンド', 'BtoB', 'コンテンツ', 'SNS活用'],
+                health: ['方法', '効果', '口コミ', 'おすすめ', '赤ちゃん', '比較', 'サイズ', '人気'],
+                default: ['とは', '方法', 'やり方', 'コツ', 'おすすめ', '比較', '口コミ', '評判']
+            };
+            const terms = relatedTerms[category] || relatedTerms.default;
+            const hash = this.hashCode(keyword);
+            return terms.map((term, i) => ({
+                keyword: `${keyword} ${term}`,
+                volume: Math.round(this.generateMonthlyVolume(keyword) * (0.1 + this.seededRandom(hash + i) * 0.5) / 100) * 100,
+                trend: ['up', 'down', 'stable'][Math.floor(this.seededRandom(hash + i + 100) * 3)]
+            })).sort((a, b) => b.volume - a.volume);
+        },
+        generatePersona(keyword) {
+            const category = this.detectCategory(keyword);
+            const personas = {
+                health: { age: ['20代: 25%', '30代: 35%', '40代: 25%', '50代以上: 15%'], gender: { male: 35, female: 65 }, occupation: ['会社員', '主婦/主夫', '育児中の親', 'シニア'], motivation: '家族の健康・育児に関する情報を得たい', devices: { mobile: 70, desktop: 20, tablet: 10 } },
+                programming: { age: ['20代: 45%', '30代: 35%', '40代: 15%', 'その他: 5%'], gender: { male: 70, female: 30 }, occupation: ['会社員（IT）', '学生', 'フリーランス', '転職希望者'], motivation: '新しいスキルを身につけてキャリアの可能性を広げたい', devices: { mobile: 35, desktop: 60, tablet: 5 } },
+                default: { age: ['20代: 30%', '30代: 30%', '40代: 25%', '50代以上: 15%'], gender: { male: 50, female: 50 }, occupation: ['会社員', '学生', '主婦/主夫', 'フリーランス'], motivation: '必要な情報を効率的に得たい', devices: { mobile: 55, desktop: 35, tablet: 10 } }
+            };
+            return personas[category] || personas.default;
+        },
+        analyzeSearchIntent(keyword) {
+            const hash = this.hashCode(keyword);
+            const r1 = Math.floor(this.seededRandom(hash) * 30) + 30;
+            const r2 = Math.floor(this.seededRandom(hash + 1) * 30) + 20;
+            return [
+                { type: 'informational', label: '情報収集', percentage: r1, color: 'blue' },
+                { type: 'commercial', label: '比較検討', percentage: r2, color: 'purple' },
+                { type: 'transactional', label: '購買目的', percentage: 100 - r1 - r2, color: 'orange' }
+            ].sort((a, b) => b.percentage - a.percentage);
+        },
+        generateTopSites(keyword) {
+            const hash = this.hashCode(keyword);
+            const sites = [
+                { domain: 'amazon.co.jp', name: 'Amazon', type: 'ECサイト' },
+                { domain: 'rakuten.co.jp', name: '楽天市場', type: 'ECサイト' },
+                { domain: 'yahoo.co.jp', name: 'Yahoo! JAPAN', type: 'ポータルサイト' },
+                { domain: 'wikipedia.org', name: 'Wikipedia', type: '百科事典' },
+                { domain: 'note.com', name: 'note', type: 'ブログプラットフォーム' },
+                { domain: 'allabout.co.jp', name: 'All About', type: '総合情報サイト' },
+                { domain: 'mybest.com', name: 'マイベスト', type: '比較サイト' },
+                { domain: '価格.com', name: '価格.com', type: '比較サイト' },
+                { domain: 'cozre.jp', name: 'コズレ', type: '育児メディア' },
+                { domain: 'mamari.jp', name: 'ママリ', type: '育児メディア' }
+            ];
+            return sites.map((site, i) => ({
+                rank: i + 1, domain: site.domain, name: site.name, type: site.type,
+                title: `${keyword}${['の完全ガイド', 'とは？初心者向け解説', '徹底解説', 'まとめ', 'の基礎知識'][i % 5]}`,
+                traffic: Math.floor(this.seededRandom(hash + i) * 50000) + 5000,
+                authority: Math.floor(60 + this.seededRandom(hash + i + 100) * 40),
+                backlinks: Math.floor(1000 + this.seededRandom(hash + i + 200) * 50000),
+                wordCount: Math.floor(1500 + this.seededRandom(hash + i + 300) * 8000),
+                lastUpdated: new Date(Date.now() - Math.floor(this.seededRandom(hash + i + 400) * 90) * 86400000).toLocaleDateString('ja-JP'),
+                seoFactors: {
+                    titleOptimization: Math.floor(70 + this.seededRandom(hash + i + 500) * 30),
+                    contentQuality: Math.floor(70 + this.seededRandom(hash + i + 600) * 30),
+                    backlinks: Math.floor(60 + this.seededRandom(hash + i + 700) * 40),
+                    userExperience: Math.floor(65 + this.seededRandom(hash + i + 800) * 35),
+                    technicalSEO: Math.floor(70 + this.seededRandom(hash + i + 900) * 30)
+                }
+            }));
+        }
+    };
+
+    // ========== ChartManager Module ==========
+    const ChartManager = {
+        trendChart: null, seasonalChart: null,
+        updateTrendChart(labels, data) {
+            const ctx = document.getElementById('trendChart').getContext('2d');
+            if (this.trendChart) this.trendChart.destroy();
+            const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+            gradient.addColorStop(0, 'rgba(102, 126, 234, 0.5)');
+            gradient.addColorStop(1, 'rgba(102, 126, 234, 0.0)');
+            this.trendChart = new Chart(ctx, {
+                type: 'line',
+                data: { labels, datasets: [{ label: '検索ボリューム', data, borderColor: '#667eea', backgroundColor: gradient, borderWidth: 3, fill: true, tension: 0.4, pointRadius: 4, pointBackgroundColor: '#667eea', pointBorderColor: '#fff', pointBorderWidth: 2 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => '検索ボリューム: ' + ctx.raw.toLocaleString() } } }, scales: { x: { grid: { display: false } }, y: { ticks: { callback: v => v >= 1000 ? (v/1000).toFixed(0) + 'K' : v } } } }
+            });
+        },
+        updateSeasonalChart(labels, data) {
+            const ctx = document.getElementById('seasonalChart').getContext('2d');
+            if (this.seasonalChart) this.seasonalChart.destroy();
+            this.seasonalChart = new Chart(ctx, {
+                type: 'bar',
+                data: { labels, datasets: [{ data, backgroundColor: data.map((_, i) => `hsla(${260 + i * 8}, 70%, 60%, 0.7)`), borderRadius: 4 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { display: false, min: 0, max: 100 } } }
+            });
+        }
+    };
+
+    // ========== AIAnalysis Module ==========
+    const AIAnalysis = {
+        generateSEOAnalysis(site, keyword) {
+            return {
+                overview: `「${site.name}」は「${keyword}」の検索結果で${site.rank}位にランクイン。DA ${site.authority}、${site.backlinks.toLocaleString()}件のバックリンク。`,
+                rankingFactors: [
+                    { name: 'タイトル最適化', score: site.seoFactors.titleOptimization, icon: '📝' },
+                    { name: 'コンテンツ品質', score: site.seoFactors.contentQuality, icon: '📄' },
+                    { name: 'バックリンク', score: site.seoFactors.backlinks, icon: '🔗' },
+                    { name: 'ユーザー体験', score: site.seoFactors.userExperience, icon: '👥' },
+                    { name: '技術的SEO', score: site.seoFactors.technicalSEO, icon: '⚙️' }
+                ],
+                strengths: site.authority >= 70 ? [{ title: '高いドメインオーソリティ', description: `DA ${site.authority}は業界トップクラス` }] : [{ title: '安定したパフォーマンス', description: 'バランスの取れたSEO対策' }],
+                improvements: [{ priority: '中', title: 'コンテンツ更新', description: '定期的なコンテンツ更新で鮮度を保つ', impact: '長期的な安定' }],
+                contentAnalysis: { wordCount: site.wordCount, readingTime: Math.ceil(site.wordCount / 400) }
+            };
+        },
+        generateReportHTML(analysis, site) {
+            return `
+                <div class="space-y-6">
+                    <div><h4 class="text-lg font-semibold mb-3">📊 分析概要</h4><p class="text-gray-600">${analysis.overview}</p></div>
+                    <div><h4 class="text-lg font-semibold mb-3">🎯 なぜこのサイトが上位表示されているのか</h4>
+                    <div class="space-y-3">${analysis.rankingFactors.map(f => `
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <div class="flex justify-between mb-2"><span>${f.icon} ${f.name}</span><span class="${f.score >= 80 ? 'text-green-600' : 'text-yellow-600'}">${f.score}/100</span></div>
+                            <div class="w-full bg-gray-200 rounded-full h-2"><div class="h-2 rounded-full ${f.score >= 80 ? 'bg-green-500' : 'bg-yellow-500'}" style="width:${f.score}%"></div></div>
+                        </div>`).join('')}</div></div>
+                    <div><h4 class="text-lg font-semibold mb-3">💪 このサイトの強み</h4>
+                    ${analysis.strengths.map(s => `<div class="bg-green-50 border border-green-100 rounded-lg p-4"><h5 class="font-medium text-green-800">${s.title}</h5><p class="text-sm text-green-700 mt-1">${s.description}</p></div>`).join('')}</div>
+                    <div><h4 class="text-lg font-semibold mb-3">📝 コンテンツ詳細</h4>
+                    <div class="grid grid-cols-2 gap-4"><div class="bg-gray-50 rounded-lg p-3 text-center"><p class="text-2xl font-bold">${analysis.contentAnalysis.wordCount.toLocaleString()}</p><p class="text-xs text-gray-500">文字数</p></div><div class="bg-gray-50 rounded-lg p-3 text-center"><p class="text-2xl font-bold">${analysis.contentAnalysis.readingTime}分</p><p class="text-xs text-gray-500">読了時間</p></div></div></div>
+                </div>`;
+        }
+    };
+
+    // ========== App Module ==========
+    const App = {
+        currentKeyword: '', currentSites: [], recentSearches: [],
+        init() {
+            this.loadRecentSearches();
+            this.setupEventListeners();
+            this.renderRecentSearches();
+            console.log('Search Volume Analyzer initialized!');
+        },
+        setupEventListeners() {
+            document.getElementById('analyzeBtn').addEventListener('click', () => this.analyze());
+            document.getElementById('keywordInput').addEventListener('keypress', e => { if (e.key === 'Enter') this.analyze(); });
+            document.querySelectorAll('.trend-period').forEach(btn => btn.addEventListener('click', e => {
+                document.querySelectorAll('.trend-period').forEach(b => { b.classList.remove('bg-purple-100', 'text-purple-600'); b.classList.add('text-gray-500'); });
+                e.target.classList.add('bg-purple-100', 'text-purple-600'); e.target.classList.remove('text-gray-500');
+                this.updateTrendChart(parseInt(e.target.dataset.period));
+            }));
+            document.querySelectorAll('.sort-btn').forEach(btn => btn.addEventListener('click', e => {
+                document.querySelectorAll('.sort-btn').forEach(b => { b.classList.remove('bg-purple-100', 'text-purple-600'); b.classList.add('text-gray-500'); });
+                e.target.classList.add('bg-purple-100', 'text-purple-600'); e.target.classList.remove('text-gray-500');
+                this.sortAndRenderSites(e.target.dataset.sort);
+            }));
+            document.getElementById('closeModal').addEventListener('click', () => this.closeModal());
+            document.getElementById('seoModal').addEventListener('click', e => { if (e.target.id === 'seoModal') this.closeModal(); });
+        },
+        async analyze() {
+            const keyword = document.getElementById('keywordInput').value.trim();
+            if (!keyword) { alert('キーワードを入力してください'); return; }
+            this.currentKeyword = keyword;
+            this.showLoading(true);
+            this.saveRecentSearch(keyword);
+            await new Promise(r => setTimeout(r, 1200));
+            this.displayResults(SearchData.generateMonthlyVolume(keyword), SearchData.generateCompetition(keyword), SearchData.generateCPC(keyword), SearchData.generateSEODifficulty(keyword));
+            this.updateTrendChart(12);
+            const seasonal = SearchData.generateSeasonalData(keyword);
+            ChartManager.updateSeasonalChart(seasonal.labels, seasonal.data);
+            this.displayRelatedKeywords();
+            this.displayPersona();
+            this.displaySearchIntent();
+            this.currentSites = SearchData.generateTopSites(keyword);
+            this.renderSites();
+            document.getElementById('resultsSection').classList.remove('hidden');
+            this.showLoading(false);
+            document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
+        },
+        showLoading(show) { document.getElementById('loadingOverlay').classList.toggle('hidden', !show); },
+        displayResults(volume, competition, cpc, seoDifficulty) {
+            document.getElementById('monthlyVolume').textContent = volume.toLocaleString();
+            document.getElementById('competition').textContent = competition;
+            const compBadge = document.getElementById('competitionBadge');
+            compBadge.textContent = competition >= 70 ? '高' : competition >= 40 ? '中' : '低';
+            compBadge.className = `text-xs px-2 py-1 rounded-full ${competition >= 70 ? 'bg-red-100 text-red-600' : competition >= 40 ? 'bg-yellow-100 text-yellow-600' : 'bg-green-100 text-green-600'}`;
+            document.getElementById('cpc').textContent = '¥' + cpc;
+            document.getElementById('seoDifficulty').textContent = seoDifficulty;
+            const seoBadge = document.getElementById('seoBadge');
+            seoBadge.textContent = seoDifficulty >= 70 ? '難' : seoDifficulty >= 40 ? '普通' : '易';
+            seoBadge.className = `text-xs px-2 py-1 rounded-full ${seoDifficulty >= 70 ? 'bg-red-100 text-red-600' : seoDifficulty >= 40 ? 'bg-yellow-100 text-yellow-600' : 'bg-green-100 text-green-600'}`;
+        },
+        updateTrendChart(months) { const trend = SearchData.generateTrendData(this.currentKeyword, months); ChartManager.updateTrendChart(trend.labels, trend.data); },
+        displayRelatedKeywords() {
+            const keywords = SearchData.generateRelatedKeywords(this.currentKeyword);
+            document.getElementById('relatedKeywords').innerHTML = keywords.map(kw => `<button class="keyword-tag bg-purple-50 text-purple-700 px-3 py-2 rounded-lg text-sm hover:bg-purple-100 flex items-center gap-2" onclick="App.searchKeyword('${kw.keyword}')"><span>${kw.keyword}</span><span class="text-xs text-gray-400">${(kw.volume/1000).toFixed(1)}K</span><span class="${kw.trend === 'up' ? 'text-green-500' : kw.trend === 'down' ? 'text-red-500' : 'text-gray-400'} text-xs">${kw.trend === 'up' ? '↑' : kw.trend === 'down' ? '↓' : '→'}</span></button>`).join('');
+        },
+        displayPersona() {
+            const p = SearchData.generatePersona(this.currentKeyword);
+            document.getElementById('personaSection').innerHTML = `
+                <div class="space-y-4">
+                    <div><h4 class="text-sm font-medium text-gray-600 mb-2">年齢層</h4><div class="space-y-1">${p.age.map(age => { const [label, pct] = age.split(': '); return `<div class="flex items-center text-sm"><span class="w-20 text-gray-500">${label}</span><div class="flex-1 bg-gray-100 rounded-full h-2 mx-2"><div class="bg-purple-500 h-2 rounded-full" style="width:${parseInt(pct)}%"></div></div><span class="text-gray-600 w-10 text-right">${pct}</span></div>`; }).join('')}</div></div>
+                    <div><h4 class="text-sm font-medium text-gray-600 mb-2">性別</h4><div class="flex gap-4"><div class="flex-1 bg-blue-50 rounded-lg p-3 text-center"><span class="text-2xl">👨</span><p class="text-lg font-bold text-blue-600">${p.gender.male}%</p></div><div class="flex-1 bg-pink-50 rounded-lg p-3 text-center"><span class="text-2xl">👩</span><p class="text-lg font-bold text-pink-600">${p.gender.female}%</p></div></div></div>
+                    <div><h4 class="text-sm font-medium text-gray-600 mb-2">主な職業</h4><div class="flex flex-wrap gap-2">${p.occupation.map(o => `<span class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">${o}</span>`).join('')}</div></div>
+                    <div class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-4"><h4 class="text-sm font-medium text-gray-600 mb-1">検索の動機</h4><p class="text-sm text-gray-700">${p.motivation}</p></div>
+                </div>`;
+        },
+        displaySearchIntent() {
+            const intents = SearchData.analyzeSearchIntent(this.currentKeyword);
+            const colorMap = { blue: 'bg-blue-500', green: 'bg-green-500', orange: 'bg-orange-500', purple: 'bg-purple-500' };
+            document.getElementById('searchIntent').innerHTML = `<div class="space-y-3">${intents.map(i => `<div><div class="flex justify-between text-sm mb-1"><span class="text-gray-600">${i.label}</span><span class="font-medium">${i.percentage}%</span></div><div class="w-full bg-gray-100 rounded-full h-3"><div class="${colorMap[i.color]} h-3 rounded-full" style="width:${i.percentage}%"></div></div></div>`).join('')}</div>`;
+        },
+        renderSites() {
+            document.getElementById('topSites').innerHTML = this.currentSites.map(site => `
+                <div class="site-card bg-gray-50 rounded-xl p-4 border border-gray-100">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-3">
+                                <span class="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center font-bold text-sm">${site.rank}</span>
+                                <div><h4 class="font-medium text-gray-800">${site.name}</h4><p class="text-xs text-gray-400">${site.domain}</p></div>
+                            </div>
+                            <p class="text-sm text-gray-600 mt-2">${site.title}</p>
+                            <div class="flex flex-wrap gap-3 mt-3 text-xs text-gray-500">
+                                <span>👁 ${site.traffic.toLocaleString()}/月</span>
+                                <span>🔗 DA: ${site.authority}</span>
+                                <span>📄 ${site.wordCount.toLocaleString()}文字</span>
+                            </div>
+                        </div>
+                        <button onclick="App.openSEOAnalysis(${site.rank - 1})" class="ml-4 gradient-bg text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90">💡 AI分析</button>
+                    </div>
+                </div>`).join('');
+        },
+        sortAndRenderSites(type) { this.currentSites.sort((a, b) => type === 'traffic' ? b.traffic - a.traffic : a.rank - b.rank); this.renderSites(); },
+        openSEOAnalysis(idx) {
+            const site = this.currentSites[idx];
+            const analysis = AIAnalysis.generateSEOAnalysis(site, this.currentKeyword);
+            document.getElementById('seoAnalysisContent').innerHTML = AIAnalysis.generateReportHTML(analysis, site);
+            document.getElementById('seoModal').classList.remove('hidden');
+        },
+        closeModal() { document.getElementById('seoModal').classList.add('hidden'); },
+        searchKeyword(kw) { document.getElementById('keywordInput').value = kw; this.analyze(); },
+        saveRecentSearch(kw) {
+            this.recentSearches = this.recentSearches.filter(k => k !== kw);
+            this.recentSearches.unshift(kw);
+            this.recentSearches = this.recentSearches.slice(0, 5);
+            try { localStorage.setItem('recentSearches', JSON.stringify(this.recentSearches)); } catch(e) {}
+            this.renderRecentSearches();
+        },
+        loadRecentSearches() { try { this.recentSearches = JSON.parse(localStorage.getItem('recentSearches')) || []; } catch(e) { this.recentSearches = []; } },
+        renderRecentSearches() {
+            const c = document.getElementById('recentSearches');
+            c.innerHTML = this.recentSearches.length === 0 ? '<span class="text-sm text-gray-400">最近の検索履歴はありません</span>' : `<span class="text-sm text-gray-500">最近の検索:</span>${this.recentSearches.map(k => `<button onclick="App.searchKeyword('${k}')" class="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm hover:bg-gray-200">${k}</button>`).join('')}`;
+        }
+    };
+
+    document.addEventListener('DOMContentLoaded', () => App.init());
+    </script>
+</body>
+</html>
