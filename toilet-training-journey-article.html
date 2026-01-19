@@ -1,0 +1,681 @@
+<!-- トイトレ変遷ジャーニー記事 - ワードプレス用HTML -->
+<!-- このコードをワードプレスの「カスタムHTML」ブロックに貼り付けてください -->
+
+<style>
+/* 全体のコンテナ */
+.toilet-journey-container {
+  font-family: 'Hiragino Kaku Gothic ProN', 'メイリオ', sans-serif;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+  border-radius: 20px;
+}
+
+/* タイトルセクション */
+.journey-title {
+  text-align: center;
+  padding: 30px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 15px;
+  margin-bottom: 30px;
+  color: white;
+}
+
+.journey-title h1 {
+  font-size: 1.8em;
+  margin: 0 0 10px 0;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+}
+
+.journey-title .subtitle {
+  font-size: 1em;
+  opacity: 0.9;
+}
+
+/* 基本情報カード */
+.info-card {
+  background: white;
+  border-radius: 15px;
+  padding: 25px;
+  margin-bottom: 30px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+.info-card h2 {
+  color: #667eea;
+  font-size: 1.3em;
+  margin-top: 0;
+  padding-bottom: 10px;
+  border-bottom: 3px solid #667eea;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.info-item {
+  background: #f8f9ff;
+  padding: 15px;
+  border-radius: 10px;
+  border-left: 4px solid #667eea;
+}
+
+.info-item .label {
+  font-weight: bold;
+  color: #333;
+  font-size: 0.9em;
+  margin-bottom: 5px;
+}
+
+.info-item .value {
+  color: #555;
+  font-size: 0.95em;
+  line-height: 1.5;
+}
+
+/* ポイントボックス */
+.key-point {
+  background: linear-gradient(135deg, #ff9a56 0%, #ff6b6b 100%);
+  color: white;
+  padding: 20px;
+  border-radius: 15px;
+  margin: 30px 0;
+  text-align: center;
+  font-size: 1.1em;
+  font-weight: bold;
+  box-shadow: 0 5px 20px rgba(255,107,107,0.3);
+}
+
+.key-point .emoji {
+  font-size: 1.5em;
+  display: block;
+  margin-bottom: 10px;
+}
+
+/* タイムライン */
+.timeline {
+  position: relative;
+  padding: 20px 0;
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 6px;
+  height: 100%;
+  background: linear-gradient(to bottom, #667eea, #764ba2, #ff6b6b, #4ecdc4);
+  border-radius: 3px;
+}
+
+@media (max-width: 768px) {
+  .timeline::before {
+    left: 30px;
+  }
+}
+
+/* タイムラインアイテム */
+.timeline-item {
+  position: relative;
+  margin-bottom: 40px;
+  display: flex;
+  align-items: flex-start;
+}
+
+.timeline-item:nth-child(odd) {
+  flex-direction: row;
+}
+
+.timeline-item:nth-child(even) {
+  flex-direction: row-reverse;
+}
+
+@media (max-width: 768px) {
+  .timeline-item,
+  .timeline-item:nth-child(even) {
+    flex-direction: row;
+    padding-left: 60px;
+  }
+}
+
+/* タイムラインドット */
+.timeline-dot {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5em;
+  z-index: 10;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+@media (max-width: 768px) {
+  .timeline-dot {
+    left: 30px;
+    width: 40px;
+    height: 40px;
+    font-size: 1.2em;
+  }
+}
+
+/* 各フェーズの色 */
+.phase-1 .timeline-dot { background: #a8d8ea; }
+.phase-2 .timeline-dot { background: #aa96da; }
+.phase-3 .timeline-dot { background: #fcbad3; }
+.phase-4 .timeline-dot { background: #ffffd2; }
+.phase-5 .timeline-dot { background: #4ecdc4; }
+
+/* タイムラインコンテンツ */
+.timeline-content {
+  width: 42%;
+  background: white;
+  border-radius: 15px;
+  padding: 25px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+  position: relative;
+}
+
+@media (max-width: 768px) {
+  .timeline-content {
+    width: calc(100% - 70px);
+  }
+}
+
+.timeline-item:nth-child(odd) .timeline-content {
+  margin-right: auto;
+  margin-left: 8%;
+}
+
+.timeline-item:nth-child(even) .timeline-content {
+  margin-left: auto;
+  margin-right: 8%;
+}
+
+@media (max-width: 768px) {
+  .timeline-item:nth-child(odd) .timeline-content,
+  .timeline-item:nth-child(even) .timeline-content {
+    margin-left: 0;
+    margin-right: 0;
+  }
+}
+
+/* フェーズヘッダー */
+.phase-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.phase-badge {
+  padding: 5px 15px;
+  border-radius: 20px;
+  font-size: 0.85em;
+  font-weight: bold;
+  color: white;
+}
+
+.phase-1 .phase-badge { background: #5d9cec; }
+.phase-2 .phase-badge { background: #9b59b6; }
+.phase-3 .phase-badge { background: #e74c3c; }
+.phase-4 .phase-badge { background: #f39c12; }
+.phase-5 .phase-badge { background: #27ae60; }
+
+.phase-title {
+  font-size: 1.2em;
+  font-weight: bold;
+  color: #333;
+  margin: 0;
+}
+
+/* コンテンツ詳細 */
+.content-section {
+  margin-top: 15px;
+  padding: 12px;
+  border-radius: 10px;
+  font-size: 0.95em;
+  line-height: 1.6;
+}
+
+.section-trigger {
+  background: #e8f4fd;
+  border-left: 4px solid #5d9cec;
+}
+
+.section-action {
+  background: #fef9e7;
+  border-left: 4px solid #f39c12;
+}
+
+.section-result {
+  background: #e8f8f5;
+  border-left: 4px solid #27ae60;
+}
+
+.section-challenge {
+  background: #fdedec;
+  border-left: 4px solid #e74c3c;
+}
+
+.section-label {
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 5px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* 進捗バー */
+.progress-section {
+  margin-top: 20px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 10px;
+}
+
+.progress-label {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 0.9em;
+}
+
+.progress-bar {
+  height: 12px;
+  background: #e0e0e0;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.3s ease;
+}
+
+.progress-pee { background: linear-gradient(90deg, #5d9cec, #3498db); }
+.progress-poo { background: linear-gradient(90deg, #e67e22, #d35400); }
+
+/* 成果ハイライト */
+.success-highlight {
+  background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+  color: white;
+  padding: 20px;
+  border-radius: 15px;
+  margin-top: 20px;
+  text-align: center;
+}
+
+.success-number {
+  font-size: 2.5em;
+  font-weight: bold;
+  display: block;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+}
+
+.success-label {
+  font-size: 1em;
+  opacity: 0.9;
+}
+
+/* 気づきボックス */
+.insight-box {
+  background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+  padding: 20px;
+  border-radius: 15px;
+  margin-top: 15px;
+}
+
+.insight-box .title {
+  font-weight: bold;
+  color: #c0392b;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* フッター */
+.journey-footer {
+  text-align: center;
+  padding: 30px;
+  margin-top: 30px;
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+.journey-footer h3 {
+  color: #667eea;
+  margin-top: 0;
+}
+
+.takeaway-list {
+  text-align: left;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 0;
+  list-style: none;
+}
+
+.takeaway-list li {
+  padding: 10px 15px;
+  margin: 10px 0;
+  background: #f8f9ff;
+  border-radius: 10px;
+  border-left: 4px solid #667eea;
+  font-size: 0.95em;
+}
+
+.takeaway-list li::before {
+  content: '✓ ';
+  color: #27ae60;
+  font-weight: bold;
+}
+</style>
+
+<div class="toilet-journey-container">
+
+  <!-- タイトル -->
+  <div class="journey-title">
+    <h1>🚽 トイトレ変遷ジャーニー</h1>
+    <div class="subtitle">〜12年間の歩みと成功への道のり〜</div>
+  </div>
+
+  <!-- 基本情報 -->
+  <div class="info-card">
+    <h2>👤 お子さんの基本情報</h2>
+    <div class="info-grid">
+      <div class="info-item">
+        <div class="label">年齢・学年</div>
+        <div class="value">12歳（中学1年生）</div>
+      </div>
+      <div class="info-item">
+        <div class="label">障害手帳</div>
+        <div class="value">身体障害者手帳1級<br>療育手帳A（重度）</div>
+      </div>
+      <div class="info-item">
+        <div class="label">身体機能</div>
+        <div class="value">体幹機能障害あり<br>→ 現在は支えなしで座位可能に</div>
+      </div>
+      <div class="info-item">
+        <div class="label">コミュニケーション</div>
+        <div class="value">発語は難しいが、生活の流れや自分の名前は理解。カードでの選択も可能に</div>
+      </div>
+      <div class="info-item">
+        <div class="label">利用サービス</div>
+        <div class="value">特別支援学校 / 放デイ / 日中一時支援 / ショートステイ / 訪問リハビリ（PT・ST）</div>
+      </div>
+      <div class="info-item">
+        <div class="label">環境の特徴</div>
+        <div class="value">同じ法人のサービスを継続利用。職員の顔ぶれが変わらない安定した環境</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- キーポイント -->
+  <div class="key-point">
+    <span class="emoji">📌</span>
+    このケースの特徴：「排便の自立」が先行し、「排尿の自立」に長年苦戦
+  </div>
+
+  <!-- タイムライン -->
+  <div class="timeline">
+
+    <!-- Phase 1: 出生〜2歳頃 -->
+    <div class="timeline-item phase-1">
+      <div class="timeline-dot">👶</div>
+      <div class="timeline-content">
+        <div class="phase-header">
+          <span class="phase-badge">PHASE 1</span>
+          <h3 class="phase-title">出生 〜 2歳頃</h3>
+        </div>
+        <p style="color: #666; font-size: 0.95em; margin: 0 0 15px 0;">意識していなかった時期</p>
+
+        <div class="content-section section-trigger">
+          <div class="section-label">📍 状況</div>
+          発達がゆっくりだったため、周囲がオムツを外れても「できなくて当たり前」と捉えていた
+        </div>
+
+        <div class="content-section section-challenge">
+          <div class="section-label">🚧 課題</div>
+          座位も取れない状態で、トイレでの排泄に現実味がなかった
+        </div>
+
+        <div class="progress-section">
+          <div class="progress-label">
+            <span>🚿 排尿の進捗</span>
+            <span>0%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill progress-pee" style="width: 0%;"></div>
+          </div>
+          <div class="progress-label">
+            <span>💩 排便の進捗</span>
+            <span>0%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill progress-poo" style="width: 0%;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 2: 2歳頃 -->
+    <div class="timeline-item phase-2">
+      <div class="timeline-dot">🌟</div>
+      <div class="timeline-content">
+        <div class="phase-header">
+          <span class="phase-badge">PHASE 2</span>
+          <h3 class="phase-title">2歳頃</h3>
+        </div>
+        <p style="color: #666; font-size: 0.95em; margin: 0 0 15px 0;">トイトレ開始と排便の自立</p>
+
+        <div class="content-section section-trigger">
+          <div class="section-label">💡 きっかけ</div>
+          児童発達支援（母子通園）の保育士から「トイレに連れて行ってみよう」と提案。「座れないのに？」と驚くも、「最初はみんなできない、習慣だから」と諭された
+        </div>
+
+        <div class="content-section section-action">
+          <div class="section-label">⚡ 取り組み</div>
+          療育センターに行っている時だけ、無理のない範囲でトイレに連れて行く
+        </div>
+
+        <div class="content-section section-result">
+          <div class="section-label">🎉 成果</div>
+          <strong>「うんち（排便）」がトイレでできるように！</strong><br>
+          以降、オムツで排便することはほぼなくなった
+        </div>
+
+        <div class="progress-section">
+          <div class="progress-label">
+            <span>🚿 排尿の進捗</span>
+            <span>5%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill progress-pee" style="width: 5%;"></div>
+          </div>
+          <div class="progress-label">
+            <span>💩 排便の進捗</span>
+            <span>90%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill progress-poo" style="width: 90%;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 3: 4〜5歳頃 -->
+    <div class="timeline-item phase-3">
+      <div class="timeline-dot">🪑</div>
+      <div class="timeline-content">
+        <div class="phase-header">
+          <span class="phase-badge">PHASE 3</span>
+          <h3 class="phase-title">4〜5歳頃</h3>
+        </div>
+        <p style="color: #666; font-size: 0.95em; margin: 0 0 15px 0;">座位の安定と物理的な転機</p>
+
+        <div class="content-section section-result">
+          <div class="section-label">🎯 座位の確立</div>
+          「バンボ（Bumbo）」のような補助便座を使用し体が安定。支えなしで一人で座れるように！
+        </div>
+
+        <div class="content-section section-trigger">
+          <div class="section-label">🔄 環境の変化</div>
+          体が大きくなり、外出先のオムツ替え台に乗らなくなったり体重制限を超えたり。<br>
+          <strong>→「場所がない」という物理的問題からトイトレへの意識が一段階UP</strong>
+        </div>
+
+        <div class="insight-box">
+          <div class="title">💭 当時の心境</div>
+          「もし座位が取れないほど重度であれば、ここまで頑張れずにオムツ以外の選択肢（尿器など）を探していたかもしれない」
+        </div>
+
+        <div class="progress-section">
+          <div class="progress-label">
+            <span>🚿 排尿の進捗</span>
+            <span>10%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill progress-pee" style="width: 10%;"></div>
+          </div>
+          <div class="progress-label">
+            <span>💩 排便の進捗</span>
+            <span>95%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill progress-poo" style="width: 95%;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 4: 小学生時代 -->
+    <div class="timeline-item phase-4">
+      <div class="timeline-dot">📚</div>
+      <div class="timeline-content">
+        <div class="phase-header">
+          <span class="phase-badge">PHASE 4</span>
+          <h3 class="phase-title">小学生時代（6〜11歳）</h3>
+        </div>
+        <p style="color: #666; font-size: 0.95em; margin: 0 0 15px 0;">試行錯誤と停滞の時期</p>
+
+        <div class="content-section section-action">
+          <div class="section-label">⚡ 取り組み</div>
+          学校や家庭で時間を決めて誘導するも、排尿はなかなか成功せず
+        </div>
+
+        <div class="content-section section-trigger">
+          <div class="section-label">👥 専門家からのアドバイス</div>
+          <strong>保育園の先生：</strong>「足を開いた方が出やすい」→ 今でも実践中<br><br>
+          <strong>ST（言語聴覚士）：</strong>トイレの意味がわかっていない可能性を指摘。カードやハンドサインで「トイレに行くよ」と伝える取り組みを開始<br><br>
+          <strong>PT（理学療法士）：</strong>「緩める」機能が脳の伝達の問題でうまくいっていない可能性を指摘
+        </div>
+
+        <div class="content-section section-challenge">
+          <div class="section-label">🚧 試した方法と結果</div>
+          膀胱を押したり、水をかけたりする刺激法も試したが効果なし。<br>
+          <strong>→ 打開策がなく、親も「どうせ出ないだろう」と思いながらダラダラ続ける状態に</strong>
+        </div>
+
+        <div class="progress-section">
+          <div class="progress-label">
+            <span>🚿 排尿の進捗</span>
+            <span>15%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill progress-pee" style="width: 15%;"></div>
+          </div>
+          <div class="progress-label">
+            <span>💩 排便の進捗</span>
+            <span>100%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill progress-poo" style="width: 100%;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 5: 11歳〜現在 -->
+    <div class="timeline-item phase-5">
+      <div class="timeline-dot">🚀</div>
+      <div class="timeline-content">
+        <div class="phase-header">
+          <span class="phase-badge">PHASE 5</span>
+          <h3 class="phase-title">11歳〜現在（約1年間）</h3>
+        </div>
+        <p style="color: #666; font-size: 0.95em; margin: 0 0 15px 0;">DFree導入と排尿の進展</p>
+
+        <div class="content-section section-trigger">
+          <div class="section-label">💡 きっかけ</div>
+          国際福祉機器展で療育園の先生がDFreeを発見して勧めてくれた。「先生のおすすめなら」と導入を決意
+        </div>
+
+        <div class="success-highlight">
+          <span class="success-number">月間51回</span>
+          <span class="success-label">成功を記録！（以前はほぼ0%→大幅改善）</span>
+        </div>
+
+        <div class="content-section section-result">
+          <div class="section-label">🎉 変化したこと</div>
+          <strong>✓ 確信を持てるように</strong><br>
+          「数値が10なら絶対溜まっている」と確信を持って待てるようになり、後ろめたさを感じながら座らせ続けるストレスが解消<br><br>
+          <strong>✓ リズムを完全把握</strong><br>
+          1年間の記録により、朝・昼・夜の排尿量やリズムを完全に把握<br><br>
+          <strong>✓ 新たなサイン発見</strong><br>
+          お子さんがお腹をポンポンする仕草が、排尿のサイン（溜まった/出た）である可能性に気づいた
+        </div>
+
+        <div class="progress-section">
+          <div class="progress-label">
+            <span>🚿 排尿の進捗</span>
+            <span>80%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill progress-pee" style="width: 80%;"></div>
+          </div>
+          <div class="progress-label">
+            <span>💩 排便の進捗</span>
+            <span>100%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill progress-poo" style="width: 100%;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- まとめ -->
+  <div class="journey-footer">
+    <h3>📝 このジャーニーから学べること</h3>
+    <ul class="takeaway-list">
+      <li>トイトレは「排便」と「排尿」で進捗が異なることがある</li>
+      <li>座位の確立が大きな転機になる（補助便座の活用）</li>
+      <li>「物理的な制約」がモチベーションになることも</li>
+      <li>専門家（PT・ST・保育士）からの多角的なアドバイスが重要</li>
+      <li>長年停滞しても、新しいツール（DFree等）で突破口が開けることがある</li>
+      <li>数値化・可視化により「確信を持って待てる」ようになる</li>
+      <li>記録の継続でお子さんのサインや傾向を発見できる</li>
+    </ul>
+  </div>
+
+</div>
