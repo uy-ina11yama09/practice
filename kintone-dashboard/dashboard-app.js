@@ -262,37 +262,26 @@
         return event;
       }
 
-      // 一覧テーブルの下に追加するため、テーブルコンテナを探す
-      const tableSelectors = [
-        '.recordlist-wrapper-gaia',       // レコードリストのラッパー
-        '.recordlist-gaia',               // レコードリスト
-        '[class*="recordlist"]',          // recordlistを含むクラス
-        '.gaia-argoui-app-index-table',   // テーブル
-        'table'                           // テーブル要素
-      ];
+      // テーブル要素を探す
+      const table = document.querySelector('table');
 
-      let tableElement = null;
-      for (const selector of tableSelectors) {
-        tableElement = document.querySelector(selector);
-        if (tableElement) {
-          console.log('テーブル要素が見つかりました:', selector);
-          break;
+      if (table) {
+        // テーブルの後に追加
+        table.insertAdjacentHTML('afterend', createDashboardHTML());
+        console.log('テーブルの後にダッシュボードを追加しました');
+      } else {
+        // フォールバック: ページャーの後に追加
+        const pager = document.querySelector('.gaia-argoui-app-index-pager') ||
+                     document.querySelector('[class*="pager"]');
+
+        if (pager) {
+          pager.insertAdjacentHTML('afterend', createDashboardHTML());
+          console.log('ページャーの後にダッシュボードを追加しました');
+        } else {
+          console.error('ダッシュボードの挿入先が見つかりません');
+          return event;
         }
       }
-
-      // テーブルの親要素または本体コンテナを取得
-      let containerElement = document.querySelector('.gaia-argoui-app-index-body') ||
-                            document.querySelector('[class*="index-body"]') ||
-                            document.querySelector('.gaia-argoui-app-body') ||
-                            document.querySelector('[class*="app-body"]');
-
-      if (!containerElement) {
-        console.error('一覧画面の要素が見つかりません');
-        return event;
-      }
-
-      // コンテナの最後（表の下）にダッシュボードを追加
-      containerElement.insertAdjacentHTML('beforeend', createDashboardHTML());
 
       // 更新時刻を表示
       document.getElementById('app-dashboard-update-time').textContent =
