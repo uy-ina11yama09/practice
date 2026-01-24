@@ -262,36 +262,37 @@
         return event;
       }
 
-      // 一覧テーブルのコンテナを探す
-      const selectors = [
-        '.gaia-argoui-app-index-pager',  // ページャーの前
+      // 一覧テーブルの下に追加するため、テーブルコンテナを探す
+      const tableSelectors = [
+        '.recordlist-wrapper-gaia',       // レコードリストのラッパー
         '.recordlist-gaia',               // レコードリスト
-        '.gaia-argoui-app-index-body',   // 一覧本体
-        '[class*="index-body"]'
+        '[class*="recordlist"]',          // recordlistを含むクラス
+        '.gaia-argoui-app-index-table',   // テーブル
+        'table'                           // テーブル要素
       ];
 
-      let targetElement = null;
-      for (const selector of selectors) {
-        targetElement = document.querySelector(selector);
-        if (targetElement) {
-          console.log('一覧要素が見つかりました:', selector);
+      let tableElement = null;
+      for (const selector of tableSelectors) {
+        tableElement = document.querySelector(selector);
+        if (tableElement) {
+          console.log('テーブル要素が見つかりました:', selector);
           break;
         }
       }
 
-      if (!targetElement) {
-        // フォールバック: コンテンツエリアの最後に追加
-        targetElement = document.querySelector('.gaia-argoui-app-body') ||
-                       document.querySelector('[class*="app-body"]');
-      }
+      // テーブルの親要素または本体コンテナを取得
+      let containerElement = document.querySelector('.gaia-argoui-app-index-body') ||
+                            document.querySelector('[class*="index-body"]') ||
+                            document.querySelector('.gaia-argoui-app-body') ||
+                            document.querySelector('[class*="app-body"]');
 
-      if (!targetElement) {
+      if (!containerElement) {
         console.error('一覧画面の要素が見つかりません');
         return event;
       }
 
-      // ダッシュボードを追加（表の下）
-      targetElement.insertAdjacentHTML('afterend', createDashboardHTML());
+      // コンテナの最後（表の下）にダッシュボードを追加
+      containerElement.insertAdjacentHTML('beforeend', createDashboardHTML());
 
       // 更新時刻を表示
       document.getElementById('app-dashboard-update-time').textContent =
