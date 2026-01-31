@@ -13,7 +13,7 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -23,15 +23,17 @@
         .game-container {
             text-align: center;
             padding: 30px;
-            background: rgba(255, 255, 255, 0.95);
+            background: rgba(30, 30, 45, 0.95);
             border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(100, 100, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         h1 {
-            color: #333;
+            color: #e0e0e0;
             margin-bottom: 20px;
             font-size: 2.5rem;
+            text-shadow: 0 0 10px rgba(150, 150, 255, 0.5);
         }
 
         .game-info {
@@ -44,11 +46,69 @@
         }
 
         .score {
-            color: #2ecc71;
+            color: #4ade80;
         }
 
         .time {
-            color: #e74c3c;
+            color: #f87171;
+        }
+
+        .difficulty-select {
+            margin-bottom: 25px;
+        }
+
+        .difficulty-select h3 {
+            color: #a0a0a0;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+
+        .difficulty-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .diff-btn {
+            padding: 12px 25px;
+            font-size: 1rem;
+            font-weight: bold;
+            color: #ccc;
+            background: rgba(60, 60, 80, 0.8);
+            border: 2px solid rgba(100, 100, 120, 0.5);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .diff-btn:hover {
+            background: rgba(80, 80, 100, 0.9);
+            border-color: rgba(150, 150, 170, 0.7);
+        }
+
+        .diff-btn.selected {
+            border-color: #6366f1;
+            background: rgba(99, 102, 241, 0.3);
+            color: #fff;
+            box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);
+        }
+
+        .diff-btn.easy.selected {
+            border-color: #4ade80;
+            background: rgba(74, 222, 128, 0.2);
+            box-shadow: 0 0 15px rgba(74, 222, 128, 0.4);
+        }
+
+        .diff-btn.normal.selected {
+            border-color: #facc15;
+            background: rgba(250, 204, 21, 0.2);
+            box-shadow: 0 0 15px rgba(250, 204, 21, 0.4);
+        }
+
+        .diff-btn.hard.selected {
+            border-color: #f87171;
+            background: rgba(248, 113, 113, 0.2);
+            box-shadow: 0 0 15px rgba(248, 113, 113, 0.4);
         }
 
         .game-board {
@@ -62,13 +122,13 @@
         .hole {
             width: 120px;
             height: 120px;
-            background: linear-gradient(145deg, #8B4513, #654321);
+            background: linear-gradient(145deg, #2a2a3a, #1a1a28);
             border-radius: 50%;
             position: relative;
             overflow: hidden;
             cursor: pointer;
-            box-shadow: inset 0 10px 20px rgba(0, 0, 0, 0.5);
-            border: 4px solid #3d2817;
+            box-shadow: inset 0 10px 25px rgba(0, 0, 0, 0.7), 0 0 10px rgba(0, 0, 0, 0.5);
+            border: 3px solid #3a3a4a;
         }
 
         .hole::after {
@@ -78,14 +138,14 @@
             left: 0;
             right: 0;
             height: 30%;
-            background: linear-gradient(to top, #2d1810, transparent);
+            background: linear-gradient(to top, #0f0f18, transparent);
             pointer-events: none;
         }
 
         .mole {
             width: 80px;
             height: 80px;
-            background: linear-gradient(145deg, #8B7355, #6B5344);
+            background: linear-gradient(145deg, #7c5c4a, #5a4235);
             border-radius: 50% 50% 45% 45%;
             position: absolute;
             left: 50%;
@@ -93,6 +153,7 @@
             bottom: -100%;
             transition: bottom 0.15s ease-out;
             cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
         }
 
         .mole::before {
@@ -102,9 +163,9 @@
             left: 15px;
             width: 12px;
             height: 12px;
-            background: #333;
+            background: #1a1a1a;
             border-radius: 50%;
-            box-shadow: 38px 0 0 #333;
+            box-shadow: 38px 0 0 #1a1a1a;
         }
 
         .mole::after {
@@ -115,7 +176,7 @@
             transform: translateX(-50%);
             width: 20px;
             height: 15px;
-            background: #FF69B4;
+            background: #e57373;
             border-radius: 50%;
         }
 
@@ -124,7 +185,7 @@
         }
 
         .mole.whacked {
-            background: linear-gradient(145deg, #ff6b6b, #ee5a5a);
+            background: linear-gradient(145deg, #ef5350, #c62828);
             animation: whack 0.2s ease-out;
         }
 
@@ -139,17 +200,17 @@
             font-size: 1.2rem;
             font-weight: bold;
             color: white;
-            background: linear-gradient(145deg, #2ecc71, #27ae60);
+            background: linear-gradient(145deg, #6366f1, #4f46e5);
             border: none;
             border-radius: 30px;
             cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
-            box-shadow: 0 5px 15px rgba(46, 204, 113, 0.4);
+            box-shadow: 0 5px 20px rgba(99, 102, 241, 0.4);
         }
 
         .start-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(46, 204, 113, 0.5);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.5);
         }
 
         .start-btn:active {
@@ -161,23 +222,25 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: white;
+            background: rgba(25, 25, 40, 0.98);
             padding: 40px 60px;
             border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 30px rgba(100, 100, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             z-index: 100;
         }
 
         .game-over h2 {
-            color: #e74c3c;
+            color: #f87171;
             margin-bottom: 15px;
             font-size: 2rem;
+            text-shadow: 0 0 10px rgba(248, 113, 113, 0.5);
         }
 
         .game-over p {
             font-size: 1.5rem;
             margin-bottom: 20px;
-            color: #333;
+            color: #e0e0e0;
         }
 
         .hidden {
@@ -190,8 +253,14 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
+            background: rgba(0, 0, 0, 0.7);
             z-index: 99;
+        }
+
+        .difficulty-label {
+            color: #888;
+            font-size: 0.9rem;
+            margin-top: 10px;
         }
     </style>
 </head>
@@ -202,6 +271,15 @@
         <div class="game-info">
             <div class="score">スコア: <span id="score">0</span></div>
             <div class="time">残り時間: <span id="time">30</span>秒</div>
+        </div>
+
+        <div class="difficulty-select" id="difficulty-select">
+            <h3>難易度を選択</h3>
+            <div class="difficulty-buttons">
+                <button class="diff-btn easy" data-difficulty="easy">かんたん</button>
+                <button class="diff-btn normal selected" data-difficulty="normal">ふつう</button>
+                <button class="diff-btn hard" data-difficulty="hard">むずかしい</button>
+            </div>
         </div>
 
         <div class="game-board" id="game-board">
@@ -221,6 +299,7 @@
         <div id="game-over" class="game-over hidden">
             <h2>ゲーム終了!</h2>
             <p>最終スコア: <span id="final-score">0</span></p>
+            <p class="difficulty-label">難易度: <span id="final-difficulty"></span></p>
             <button id="restart-btn" class="start-btn">もう一度プレイ</button>
         </div>
     </div>
@@ -231,16 +310,44 @@
                 this.score = 0;
                 this.timeLeft = 30;
                 this.gameInterval = null;
-                this.moleInterval = null;
                 this.isPlaying = false;
                 this.lastMoleIndex = -1;
+                this.difficulty = 'normal';
+
+                // 難易度設定: モグラの表示時間と出現間隔
+                this.difficultySettings = {
+                    easy: {
+                        minUpTime: 1000,
+                        maxUpTime: 1500,
+                        minSpawnDelay: 400,
+                        maxSpawnDelay: 600,
+                        label: 'かんたん'
+                    },
+                    normal: {
+                        minUpTime: 600,
+                        maxUpTime: 1000,
+                        minSpawnDelay: 200,
+                        maxSpawnDelay: 400,
+                        label: 'ふつう'
+                    },
+                    hard: {
+                        minUpTime: 350,
+                        maxUpTime: 600,
+                        minSpawnDelay: 100,
+                        maxSpawnDelay: 250,
+                        label: 'むずかしい'
+                    }
+                };
 
                 this.scoreDisplay = document.getElementById('score');
                 this.timeDisplay = document.getElementById('time');
                 this.startBtn = document.getElementById('start-btn');
                 this.gameOverScreen = document.getElementById('game-over');
                 this.finalScoreDisplay = document.getElementById('final-score');
+                this.finalDifficultyDisplay = document.getElementById('final-difficulty');
                 this.restartBtn = document.getElementById('restart-btn');
+                this.difficultySelect = document.getElementById('difficulty-select');
+                this.diffButtons = document.querySelectorAll('.diff-btn');
                 this.holes = document.querySelectorAll('.hole');
                 this.moles = document.querySelectorAll('.mole');
 
@@ -250,6 +357,10 @@
             init() {
                 this.startBtn.addEventListener('click', () => this.startGame());
                 this.restartBtn.addEventListener('click', () => this.restartGame());
+
+                this.diffButtons.forEach(btn => {
+                    btn.addEventListener('click', () => this.selectDifficulty(btn));
+                });
 
                 this.moles.forEach((mole, index) => {
                     mole.addEventListener('click', (e) => this.whackMole(e, index));
@@ -264,6 +375,12 @@
                 });
             }
 
+            selectDifficulty(btn) {
+                this.diffButtons.forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+                this.difficulty = btn.dataset.difficulty;
+            }
+
             startGame() {
                 this.isPlaying = true;
                 this.score = 0;
@@ -272,6 +389,7 @@
                 this.updateTime();
 
                 this.startBtn.classList.add('hidden');
+                this.difficultySelect.classList.add('hidden');
                 this.gameOverScreen.classList.add('hidden');
 
                 this.removeOverlay();
@@ -293,6 +411,8 @@
             spawnMole() {
                 if (!this.isPlaying) return;
 
+                const settings = this.difficultySettings[this.difficulty];
+
                 // Hide all moles first
                 this.moles.forEach(mole => mole.classList.remove('up'));
 
@@ -309,16 +429,16 @@
                 mole.classList.add('up');
                 mole.classList.remove('whacked');
 
-                // Random time for mole to stay up (600ms - 1200ms)
-                const upTime = Math.random() * 600 + 600;
+                // Random time for mole to stay up based on difficulty
+                const upTime = Math.random() * (settings.maxUpTime - settings.minUpTime) + settings.minUpTime;
 
                 // Hide the mole after random time
                 setTimeout(() => {
                     mole.classList.remove('up');
 
-                    // Spawn next mole after a short delay
+                    // Spawn next mole after a short delay based on difficulty
                     if (this.isPlaying) {
-                        const nextSpawnDelay = Math.random() * 300 + 200;
+                        const nextSpawnDelay = Math.random() * (settings.maxSpawnDelay - settings.minSpawnDelay) + settings.minSpawnDelay;
                         setTimeout(() => this.spawnMole(), nextSpawnDelay);
                     }
                 }, upTime);
@@ -353,9 +473,9 @@
 
                 // Change color when time is running low
                 if (this.timeLeft <= 10) {
-                    this.timeDisplay.parentElement.style.color = '#c0392b';
+                    this.timeDisplay.parentElement.style.color = '#ef4444';
                 } else {
-                    this.timeDisplay.parentElement.style.color = '#e74c3c';
+                    this.timeDisplay.parentElement.style.color = '#f87171';
                 }
             }
 
@@ -363,7 +483,6 @@
                 this.isPlaying = false;
 
                 clearInterval(this.gameInterval);
-                clearInterval(this.moleInterval);
 
                 // Hide all moles
                 this.moles.forEach(mole => {
@@ -373,13 +492,16 @@
 
                 // Show game over screen
                 this.finalScoreDisplay.textContent = this.score;
+                this.finalDifficultyDisplay.textContent = this.difficultySettings[this.difficulty].label;
                 this.addOverlay();
                 this.gameOverScreen.classList.remove('hidden');
             }
 
             restartGame() {
                 this.gameOverScreen.classList.add('hidden');
-                this.startGame();
+                this.difficultySelect.classList.remove('hidden');
+                this.startBtn.classList.remove('hidden');
+                this.removeOverlay();
             }
 
             addOverlay() {
