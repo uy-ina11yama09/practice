@@ -143,9 +143,9 @@
         }
 
         .mole {
-            width: 80px;
-            height: 80px;
-            background: linear-gradient(145deg, #7c5c4a, #5a4235);
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(145deg, #FFD93D, #F4C430);
             border-radius: 50% 50% 45% 45%;
             position: absolute;
             left: 50%;
@@ -156,36 +156,74 @@
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
         }
 
+        /* ピカチュウの耳（左） */
         .mole::before {
             content: '';
             position: absolute;
-            top: 20px;
-            left: 15px;
-            width: 12px;
-            height: 12px;
-            background: #1a1a1a;
-            border-radius: 50%;
-            box-shadow: 38px 0 0 #1a1a1a;
+            top: -30px;
+            left: 5px;
+            width: 14px;
+            height: 35px;
+            background: linear-gradient(to top, #FFD93D 60%, #1a1a1a 60%);
+            border-radius: 50% 50% 40% 40%;
+            transform: rotate(-20deg);
         }
 
+        /* ピカチュウの耳（右） */
         .mole::after {
             content: '';
             position: absolute;
-            top: 40px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 20px;
-            height: 15px;
-            background: #e57373;
+            top: -30px;
+            right: 5px;
+            width: 14px;
+            height: 35px;
+            background: linear-gradient(to top, #FFD93D 60%, #1a1a1a 60%);
+            border-radius: 50% 50% 40% 40%;
+            transform: rotate(20deg);
+        }
+
+        /* ピカチュウの顔パーツ（目と頬） */
+        .mole-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* 目（左） */
+        .mole-face::before {
+            content: '';
+            position: absolute;
+            top: 18px;
+            left: 12px;
+            width: 12px;
+            height: 14px;
+            background: #1a1a1a;
             border-radius: 50%;
+            box-shadow:
+                3px -2px 0 2px #fff inset,
+                34px 0 0 0 #1a1a1a,
+                37px -2px 0 2px #fff;
+        }
+
+        /* 頬（赤い丸） */
+        .mole-face::after {
+            content: '';
+            position: absolute;
+            top: 35px;
+            left: 3px;
+            width: 15px;
+            height: 12px;
+            background: #FF6B6B;
+            border-radius: 50%;
+            box-shadow: 49px 0 0 0 #FF6B6B;
         }
 
         .mole.up {
-            bottom: 15%;
+            bottom: 10%;
         }
 
         .mole.whacked {
-            background: linear-gradient(145deg, #ef5350, #c62828);
+            background: linear-gradient(145deg, #FFB347, #FF8C00);
             animation: whack 0.2s ease-out;
         }
 
@@ -283,15 +321,15 @@
         </div>
 
         <div class="game-board" id="game-board">
-            <div class="hole" data-id="0"><div class="mole"></div></div>
-            <div class="hole" data-id="1"><div class="mole"></div></div>
-            <div class="hole" data-id="2"><div class="mole"></div></div>
-            <div class="hole" data-id="3"><div class="mole"></div></div>
-            <div class="hole" data-id="4"><div class="mole"></div></div>
-            <div class="hole" data-id="5"><div class="mole"></div></div>
-            <div class="hole" data-id="6"><div class="mole"></div></div>
-            <div class="hole" data-id="7"><div class="mole"></div></div>
-            <div class="hole" data-id="8"><div class="mole"></div></div>
+            <div class="hole" data-id="0"><div class="mole"><div class="mole-face"></div></div></div>
+            <div class="hole" data-id="1"><div class="mole"><div class="mole-face"></div></div></div>
+            <div class="hole" data-id="2"><div class="mole"><div class="mole-face"></div></div></div>
+            <div class="hole" data-id="3"><div class="mole"><div class="mole-face"></div></div></div>
+            <div class="hole" data-id="4"><div class="mole"><div class="mole-face"></div></div></div>
+            <div class="hole" data-id="5"><div class="mole"><div class="mole-face"></div></div></div>
+            <div class="hole" data-id="6"><div class="mole"><div class="mole-face"></div></div></div>
+            <div class="hole" data-id="7"><div class="mole"><div class="mole-face"></div></div></div>
+            <div class="hole" data-id="8"><div class="mole"><div class="mole-face"></div></div></div>
         </div>
 
         <button id="start-btn" class="start-btn">ゲームスタート</button>
